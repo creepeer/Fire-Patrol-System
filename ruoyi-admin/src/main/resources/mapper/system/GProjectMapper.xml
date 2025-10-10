@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.GProjectMapper">
+    
+    <resultMap type="GProject" id="GProjectResult">
+        <result property="pid"    column="pid"    />
+        <result property="projectCode"    column="project_code"    />
+        <result property="regionText"    column="region_text"    />
+        <result property="province"    column="province"    />
+        <result property="city"    column="city"    />
+        <result property="district"    column="district"    />
+        <result property="street"    column="street"    />
+        <result property="address"    column="address"    />
+        <result property="contactPerson"    column="contact_person"    />
+        <result property="contactPhone"    column="contact_phone"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectGProjectVo">
+        select pid, project_code, region_text, province, city, district, street, address, contact_person, contact_phone, deleted, creator, creator_time, modifier, modifier_time from g_project
+    </sql>
+
+    <select id="selectGProjectList" parameterType="GProject" resultMap="GProjectResult">
+        <include refid="selectGProjectVo"/>
+        <where>  
+            <if test="projectCode != null  and projectCode != ''"> and project_code = #{projectCode}</if>
+            <if test="regionText != null  and regionText != ''"> and region_text = #{regionText}</if>
+            <if test="province != null  and province != ''"> and province = #{province}</if>
+            <if test="city != null  and city != ''"> and city = #{city}</if>
+            <if test="district != null  and district != ''"> and district = #{district}</if>
+            <if test="street != null  and street != ''"> and street = #{street}</if>
+            <if test="address != null  and address != ''"> and address = #{address}</if>
+            <if test="contactPerson != null  and contactPerson != ''"> and contact_person = #{contactPerson}</if>
+            <if test="contactPhone != null  and contactPhone != ''"> and contact_phone = #{contactPhone}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectGProjectByPid" parameterType="Long" resultMap="GProjectResult">
+        <include refid="selectGProjectVo"/>
+        where pid = #{pid}
+    </select>
+
+    <insert id="insertGProject" parameterType="GProject">
+        insert into g_project
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="pid != null">pid,</if>
+            <if test="projectCode != null and projectCode != ''">project_code,</if>
+            <if test="regionText != null">region_text,</if>
+            <if test="province != null">province,</if>
+            <if test="city != null">city,</if>
+            <if test="district != null">district,</if>
+            <if test="street != null">street,</if>
+            <if test="address != null">address,</if>
+            <if test="contactPerson != null">contact_person,</if>
+            <if test="contactPhone != null">contact_phone,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="pid != null">#{pid},</if>
+            <if test="projectCode != null and projectCode != ''">#{projectCode},</if>
+            <if test="regionText != null">#{regionText},</if>
+            <if test="province != null">#{province},</if>
+            <if test="city != null">#{city},</if>
+            <if test="district != null">#{district},</if>
+            <if test="street != null">#{street},</if>
+            <if test="address != null">#{address},</if>
+            <if test="contactPerson != null">#{contactPerson},</if>
+            <if test="contactPhone != null">#{contactPhone},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGProject" parameterType="GProject">
+        update g_project
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="projectCode != null and projectCode != ''">project_code = #{projectCode},</if>
+            <if test="regionText != null">region_text = #{regionText},</if>
+            <if test="province != null">province = #{province},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="district != null">district = #{district},</if>
+            <if test="street != null">street = #{street},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="contactPerson != null">contact_person = #{contactPerson},</if>
+            <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where pid = #{pid}
+    </update>
+
+    <delete id="deleteGProjectByPid" parameterType="Long">
+        delete from g_project where pid = #{pid}
+    </delete>
+
+    <delete id="deleteGProjectByPids" parameterType="String">
+        delete from g_project where pid in 
+        <foreach item="pid" collection="array" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </delete>
+</mapper>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.GBuildingMapper">
+    
+    <resultMap type="GBuilding" id="GBuildingResult">
+        <result property="pid"    column="pid"    />
+        <result property="height"    column="height"    />
+        <result property="floors"    column="floors"    />
+        <result property="area"    column="area"    />
+        <result property="buildingType"    column="building_type"    />
+        <result property="usageType"    column="usage_type"    />
+        <result property="address"    column="address"    />
+        <result property="contactPerson"    column="contact_person"    />
+        <result property="contactPhone"    column="contact_phone"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectGBuildingVo">
+        select pid, height, floors, area, building_type, usage_type, address, contact_person, contact_phone, deleted, creator, creator_time, modifier, modifier_time from g_building
+    </sql>
+
+    <select id="selectGBuildingList" parameterType="GBuilding" resultMap="GBuildingResult">
+        <include refid="selectGBuildingVo"/>
+        <where>  
+            <if test="height != null "> and height = #{height}</if>
+            <if test="floors != null  and floors != ''"> and floors = #{floors}</if>
+            <if test="area != null "> and area = #{area}</if>
+            <if test="buildingType != null  and buildingType != ''"> and building_type = #{buildingType}</if>
+            <if test="usageType != null  and usageType != ''"> and usage_type = #{usageType}</if>
+            <if test="address != null  and address != ''"> and address = #{address}</if>
+            <if test="contactPerson != null  and contactPerson != ''"> and contact_person = #{contactPerson}</if>
+            <if test="contactPhone != null  and contactPhone != ''"> and contact_phone = #{contactPhone}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectGBuildingByPid" parameterType="Long" resultMap="GBuildingResult">
+        <include refid="selectGBuildingVo"/>
+        where pid = #{pid}
+    </select>
+
+    <insert id="insertGBuilding" parameterType="GBuilding">
+        insert into g_building
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="pid != null">pid,</if>
+            <if test="height != null">height,</if>
+            <if test="floors != null">floors,</if>
+            <if test="area != null">area,</if>
+            <if test="buildingType != null">building_type,</if>
+            <if test="usageType != null">usage_type,</if>
+            <if test="address != null">address,</if>
+            <if test="contactPerson != null">contact_person,</if>
+            <if test="contactPhone != null">contact_phone,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="pid != null">#{pid},</if>
+            <if test="height != null">#{height},</if>
+            <if test="floors != null">#{floors},</if>
+            <if test="area != null">#{area},</if>
+            <if test="buildingType != null">#{buildingType},</if>
+            <if test="usageType != null">#{usageType},</if>
+            <if test="address != null">#{address},</if>
+            <if test="contactPerson != null">#{contactPerson},</if>
+            <if test="contactPhone != null">#{contactPhone},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGBuilding" parameterType="GBuilding">
+        update g_building
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="height != null">height = #{height},</if>
+            <if test="floors != null">floors = #{floors},</if>
+            <if test="area != null">area = #{area},</if>
+            <if test="buildingType != null">building_type = #{buildingType},</if>
+            <if test="usageType != null">usage_type = #{usageType},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="contactPerson != null">contact_person = #{contactPerson},</if>
+            <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where pid = #{pid}
+    </update>
+
+    <delete id="deleteGBuildingByPid" parameterType="Long">
+        delete from g_building where pid = #{pid}
+    </delete>
+
+    <delete id="deleteGBuildingByPids" parameterType="String">
+        delete from g_building where pid in 
+        <foreach item="pid" collection="array" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </delete>
+</mapper>

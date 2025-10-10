@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.AreaMapper">
+    
+    <resultMap type="Area" id="AreaResult">
+        <result property="id"    column="id"    />
+        <result property="level"    column="level"    />
+        <result property="parentCode"    column="parent_code"    />
+        <result property="areaCode"    column="area_code"    />
+        <result property="zipCode"    column="zip_code"    />
+        <result property="cityCode"    column="city_code"    />
+        <result property="areaName"    column="area_name"    />
+        <result property="shortName"    column="short_name"    />
+        <result property="mergerName"    column="merger_name"    />
+        <result property="pinyin"    column="pinyin"    />
+        <result property="abbr"    column="abbr"    />
+        <result property="lng"    column="lng"    />
+        <result property="lat"    column="lat"    />
+        <result property="remark"    column="remark"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectAreaVo">
+        select id, level, parent_code, area_code, zip_code, city_code, area_name, short_name, merger_name, pinyin, abbr, lng, lat, remark, deleted, creator, creator_time, modifier, modifier_time from sys_area
+    </sql>
+
+    <select id="selectAreaList" parameterType="Area" resultMap="AreaResult">
+        <include refid="selectAreaVo"/>
+        <where>  
+            <if test="level != null "> and level = #{level}</if>
+            <if test="parentCode != null "> and parent_code = #{parentCode}</if>
+            <if test="areaCode != null "> and area_code = #{areaCode}</if>
+            <if test="zipCode != null "> and zip_code = #{zipCode}</if>
+            <if test="cityCode != null  and cityCode != ''"> and city_code = #{cityCode}</if>
+            <if test="areaName != null  and areaName != ''"> and area_name like concat('%', #{areaName}, '%')</if>
+            <if test="shortName != null  and shortName != ''"> and short_name like concat('%', #{shortName}, '%')</if>
+            <if test="mergerName != null  and mergerName != ''"> and merger_name like concat('%', #{mergerName}, '%')</if>
+            <if test="pinyin != null  and pinyin != ''"> and pinyin = #{pinyin}</if>
+            <if test="abbr != null "> and abbr = #{abbr}</if>
+            <if test="lng != null "> and lng = #{lng}</if>
+            <if test="lat != null "> and lat = #{lat}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectAreaById" parameterType="Long" resultMap="AreaResult">
+        <include refid="selectAreaVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertArea" parameterType="Area" useGeneratedKeys="true" keyProperty="id">
+        insert into sys_area
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="level != null">level,</if>
+            <if test="parentCode != null">parent_code,</if>
+            <if test="areaCode != null">area_code,</if>
+            <if test="zipCode != null">zip_code,</if>
+            <if test="cityCode != null and cityCode != ''">city_code,</if>
+            <if test="areaName != null and areaName != ''">area_name,</if>
+            <if test="shortName != null and shortName != ''">short_name,</if>
+            <if test="mergerName != null and mergerName != ''">merger_name,</if>
+            <if test="pinyin != null and pinyin != ''">pinyin,</if>
+            <if test="abbr != null">abbr,</if>
+            <if test="lng != null">lng,</if>
+            <if test="lat != null">lat,</if>
+            <if test="remark != null">remark,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null and creator != ''">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null and modifier != ''">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="level != null">#{level},</if>
+            <if test="parentCode != null">#{parentCode},</if>
+            <if test="areaCode != null">#{areaCode},</if>
+            <if test="zipCode != null">#{zipCode},</if>
+            <if test="cityCode != null and cityCode != ''">#{cityCode},</if>
+            <if test="areaName != null and areaName != ''">#{areaName},</if>
+            <if test="shortName != null and shortName != ''">#{shortName},</if>
+            <if test="mergerName != null and mergerName != ''">#{mergerName},</if>
+            <if test="pinyin != null and pinyin != ''">#{pinyin},</if>
+            <if test="abbr != null">#{abbr},</if>
+            <if test="lng != null">#{lng},</if>
+            <if test="lat != null">#{lat},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null and creator != ''">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateArea" parameterType="Area">
+        update sys_area
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="level != null">level = #{level},</if>
+            <if test="parentCode != null">parent_code = #{parentCode},</if>
+            <if test="areaCode != null">area_code = #{areaCode},</if>
+            <if test="zipCode != null">zip_code = #{zipCode},</if>
+            <if test="cityCode != null and cityCode != ''">city_code = #{cityCode},</if>
+            <if test="areaName != null and areaName != ''">area_name = #{areaName},</if>
+            <if test="shortName != null and shortName != ''">short_name = #{shortName},</if>
+            <if test="mergerName != null and mergerName != ''">merger_name = #{mergerName},</if>
+            <if test="pinyin != null and pinyin != ''">pinyin = #{pinyin},</if>
+            <if test="abbr != null">abbr = #{abbr},</if>
+            <if test="lng != null">lng = #{lng},</if>
+            <if test="lat != null">lat = #{lat},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAreaById" parameterType="Long">
+        delete from sys_area where id = #{id}
+    </delete>
+
+    <delete id="deleteAreaByIds" parameterType="String">
+        delete from sys_area where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

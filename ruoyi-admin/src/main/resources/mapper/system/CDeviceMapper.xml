@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.CDeviceMapper">
+    
+    <resultMap type="CDevice" id="CDeviceResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="categoryId"    column="category_id"    />
+        <result property="projectId"    column="project_id"    />
+        <result property="zoneId1"    column="zone_id1"    />
+        <result property="zoneId2"    column="zone_id2"    />
+        <result property="zoneId3"    column="zone_id3"    />
+        <result property="location"    column="location"    />
+        <result property="relatedLocation"    column="related_location"    />
+        <result property="brand"    column="brand"    />
+        <result property="model"    column="model"    />
+        <result property="isHost"    column="is_host"    />
+        <result property="isBus"    column="is_bus"    />
+        <result property="productionDate"    column="production_date"    />
+        <result property="startDate"    column="start_date"    />
+        <result property="warrantyStart"    column="warranty_start"    />
+        <result property="serviceLife"    column="service_life"    />
+        <result property="deviceStatus"    column="device_status"    />
+        <result property="bindStatus"    column="bind_status"    />
+        <result property="qrCode"    column="qr_code"    />
+        <result property="qrUrl"    column="qr_url"    />
+        <result property="diagram2d"    column="diagram_2d"    />
+        <result property="lng"    column="lng"    />
+        <result property="lat"    column="lat"    />
+        <result property="remark"    column="remark"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectCDeviceVo">
+        select id, name, category_id, project_id, zone_id1, zone_id2, zone_id3, location, related_location, brand, model, is_host, is_bus, production_date, start_date, warranty_start, service_life, device_status, bind_status, qr_code, qr_url, diagram_2d, lng, lat, remark, deleted, creator, creator_time, modifier, modifier_time from c_device
+    </sql>
+
+    <select id="selectCDeviceList" parameterType="CDevice" resultMap="CDeviceResult">
+        <include refid="selectCDeviceVo"/>
+        <where>  
+            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="categoryId != null "> and category_id = #{categoryId}</if>
+            <if test="projectId != null "> and project_id = #{projectId}</if>
+            <if test="zoneId1 != null "> and zone_id1 = #{zoneId1}</if>
+            <if test="zoneId2 != null "> and zone_id2 = #{zoneId2}</if>
+            <if test="zoneId3 != null "> and zone_id3 = #{zoneId3}</if>
+            <if test="location != null  and location != ''"> and location = #{location}</if>
+            <if test="relatedLocation != null  and relatedLocation != ''"> and related_location = #{relatedLocation}</if>
+            <if test="brand != null  and brand != ''"> and brand = #{brand}</if>
+            <if test="model != null  and model != ''"> and model = #{model}</if>
+            <if test="isHost != null "> and is_host = #{isHost}</if>
+            <if test="isBus != null "> and is_bus = #{isBus}</if>
+            <if test="productionDate != null "> and production_date = #{productionDate}</if>
+            <if test="startDate != null "> and start_date = #{startDate}</if>
+            <if test="warrantyStart != null "> and warranty_start = #{warrantyStart}</if>
+            <if test="serviceLife != null "> and service_life = #{serviceLife}</if>
+            <if test="deviceStatus != null "> and device_status = #{deviceStatus}</if>
+            <if test="bindStatus != null "> and bind_status = #{bindStatus}</if>
+            <if test="qrCode != null  and qrCode != ''"> and qr_code = #{qrCode}</if>
+            <if test="qrUrl != null  and qrUrl != ''"> and qr_url = #{qrUrl}</if>
+            <if test="diagram2d != null  and diagram2d != ''"> and diagram_2d = #{diagram2d}</if>
+            <if test="lng != null "> and lng = #{lng}</if>
+            <if test="lat != null "> and lat = #{lat}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectCDeviceById" parameterType="Long" resultMap="CDeviceResult">
+        <include refid="selectCDeviceVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertCDevice" parameterType="CDevice" useGeneratedKeys="true" keyProperty="id">
+        insert into c_device
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="categoryId != null">category_id,</if>
+            <if test="projectId != null">project_id,</if>
+            <if test="zoneId1 != null">zone_id1,</if>
+            <if test="zoneId2 != null">zone_id2,</if>
+            <if test="zoneId3 != null">zone_id3,</if>
+            <if test="location != null">location,</if>
+            <if test="relatedLocation != null">related_location,</if>
+            <if test="brand != null">brand,</if>
+            <if test="model != null">model,</if>
+            <if test="isHost != null">is_host,</if>
+            <if test="isBus != null">is_bus,</if>
+            <if test="productionDate != null">production_date,</if>
+            <if test="startDate != null">start_date,</if>
+            <if test="warrantyStart != null">warranty_start,</if>
+            <if test="serviceLife != null">service_life,</if>
+            <if test="deviceStatus != null">device_status,</if>
+            <if test="bindStatus != null">bind_status,</if>
+            <if test="qrCode != null">qr_code,</if>
+            <if test="qrUrl != null">qr_url,</if>
+            <if test="diagram2d != null">diagram_2d,</if>
+            <if test="lng != null">lng,</if>
+            <if test="lat != null">lat,</if>
+            <if test="remark != null">remark,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null and creator != ''">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null and modifier != ''">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="categoryId != null">#{categoryId},</if>
+            <if test="projectId != null">#{projectId},</if>
+            <if test="zoneId1 != null">#{zoneId1},</if>
+            <if test="zoneId2 != null">#{zoneId2},</if>
+            <if test="zoneId3 != null">#{zoneId3},</if>
+            <if test="location != null">#{location},</if>
+            <if test="relatedLocation != null">#{relatedLocation},</if>
+            <if test="brand != null">#{brand},</if>
+            <if test="model != null">#{model},</if>
+            <if test="isHost != null">#{isHost},</if>
+            <if test="isBus != null">#{isBus},</if>
+            <if test="productionDate != null">#{productionDate},</if>
+            <if test="startDate != null">#{startDate},</if>
+            <if test="warrantyStart != null">#{warrantyStart},</if>
+            <if test="serviceLife != null">#{serviceLife},</if>
+            <if test="deviceStatus != null">#{deviceStatus},</if>
+            <if test="bindStatus != null">#{bindStatus},</if>
+            <if test="qrCode != null">#{qrCode},</if>
+            <if test="qrUrl != null">#{qrUrl},</if>
+            <if test="diagram2d != null">#{diagram2d},</if>
+            <if test="lng != null">#{lng},</if>
+            <if test="lat != null">#{lat},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null and creator != ''">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateCDevice" parameterType="CDevice">
+        update c_device
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="projectId != null">project_id = #{projectId},</if>
+            <if test="zoneId1 != null">zone_id1 = #{zoneId1},</if>
+            <if test="zoneId2 != null">zone_id2 = #{zoneId2},</if>
+            <if test="zoneId3 != null">zone_id3 = #{zoneId3},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="relatedLocation != null">related_location = #{relatedLocation},</if>
+            <if test="brand != null">brand = #{brand},</if>
+            <if test="model != null">model = #{model},</if>
+            <if test="isHost != null">is_host = #{isHost},</if>
+            <if test="isBus != null">is_bus = #{isBus},</if>
+            <if test="productionDate != null">production_date = #{productionDate},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="warrantyStart != null">warranty_start = #{warrantyStart},</if>
+            <if test="serviceLife != null">service_life = #{serviceLife},</if>
+            <if test="deviceStatus != null">device_status = #{deviceStatus},</if>
+            <if test="bindStatus != null">bind_status = #{bindStatus},</if>
+            <if test="qrCode != null">qr_code = #{qrCode},</if>
+            <if test="qrUrl != null">qr_url = #{qrUrl},</if>
+            <if test="diagram2d != null">diagram_2d = #{diagram2d},</if>
+            <if test="lng != null">lng = #{lng},</if>
+            <if test="lat != null">lat = #{lat},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteCDeviceById" parameterType="Long">
+        delete from c_device where id = #{id}
+    </delete>
+
+    <delete id="deleteCDeviceByIds" parameterType="String">
+        delete from c_device where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

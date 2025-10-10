@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.GZoneMapper">
+    
+    <resultMap type="GZone" id="GZoneResult">
+        <result property="id"    column="id"    />
+        <result property="zname"    column="zname"    />
+        <result property="pid"    column="pid"    />
+        <result property="zonetype"    column="zonetype"    />
+        <result property="planMap"    column="plan_map"    />
+        <result property="introduction"    column="introduction"    />
+        <result property="evacuationMap"    column="evacuation_map"    />
+        <result property="manager"    column="manager"    />
+        <result property="managerPhone"    column="manager_phone"    />
+        <result property="safetyOfficer"    column="safety_officer"    />
+        <result property="safetyOfficerPhone"    column="safety_officer_phone"    />
+        <result property="lng"    column="lng"    />
+        <result property="lat"    column="lat"    />
+        <result property="remark"    column="remark"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectGZoneVo">
+        select id, zname, pid, zonetype, plan_map, introduction, evacuation_map, manager, manager_phone, safety_officer, safety_officer_phone, lng, lat, remark, deleted, creator, creator_time, modifier, modifier_time from g_zone
+    </sql>
+
+    <select id="selectGZoneList" parameterType="GZone" resultMap="GZoneResult">
+        <include refid="selectGZoneVo"/>
+        <where>  
+            <if test="zname != null  and zname != ''"> and zname like concat('%', #{zname}, '%')</if>
+            <if test="pid != null "> and pid = #{pid}</if>
+            <if test="zonetype != null "> and zonetype = #{zonetype}</if>
+            <if test="planMap != null  and planMap != ''"> and plan_map = #{planMap}</if>
+            <if test="introduction != null  and introduction != ''"> and introduction = #{introduction}</if>
+            <if test="evacuationMap != null  and evacuationMap != ''"> and evacuation_map = #{evacuationMap}</if>
+            <if test="manager != null  and manager != ''"> and manager = #{manager}</if>
+            <if test="managerPhone != null  and managerPhone != ''"> and manager_phone = #{managerPhone}</if>
+            <if test="safetyOfficer != null  and safetyOfficer != ''"> and safety_officer = #{safetyOfficer}</if>
+            <if test="safetyOfficerPhone != null  and safetyOfficerPhone != ''"> and safety_officer_phone = #{safetyOfficerPhone}</if>
+            <if test="lng != null "> and lng = #{lng}</if>
+            <if test="lat != null "> and lat = #{lat}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectGZoneById" parameterType="Long" resultMap="GZoneResult">
+        <include refid="selectGZoneVo"/>
+        where id = #{id}
+    </select>
+    <select id="selectIdByZNameAndPid" parameterType="map" resultType="java.lang.Long">
+        SELECT id
+        FROM g_zone
+        WHERE zname = #{name}
+          AND pid = #{pid}
+          AND deleted = 0
+        ORDER BY id DESC
+    </select>
+
+    <insert id="insertGZone" parameterType="GZone" useGeneratedKeys="true" keyProperty="id">
+        insert into g_zone
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="zname != null and zname != ''">zname,</if>
+            <if test="pid != null">pid,</if>
+            <if test="zonetype != null">zonetype,</if>
+            <if test="planMap != null">plan_map,</if>
+            <if test="introduction != null">introduction,</if>
+            <if test="evacuationMap != null">evacuation_map,</if>
+            <if test="manager != null">manager,</if>
+            <if test="managerPhone != null">manager_phone,</if>
+            <if test="safetyOfficer != null">safety_officer,</if>
+            <if test="safetyOfficerPhone != null">safety_officer_phone,</if>
+            <if test="lng != null">lng,</if>
+            <if test="lat != null">lat,</if>
+            <if test="remark != null">remark,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null and creator != ''">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null and modifier != ''">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="zname != null and zname != ''">#{zname},</if>
+            <if test="pid != null">#{pid},</if>
+            <if test="zonetype != null">#{zonetype},</if>
+            <if test="planMap != null">#{planMap},</if>
+            <if test="introduction != null">#{introduction},</if>
+            <if test="evacuationMap != null">#{evacuationMap},</if>
+            <if test="manager != null">#{manager},</if>
+            <if test="managerPhone != null">#{managerPhone},</if>
+            <if test="safetyOfficer != null">#{safetyOfficer},</if>
+            <if test="safetyOfficerPhone != null">#{safetyOfficerPhone},</if>
+            <if test="lng != null">#{lng},</if>
+            <if test="lat != null">#{lat},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null and creator != ''">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGZone" parameterType="GZone">
+        update g_zone
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="zname != null and zname != ''">zname = #{zname},</if>
+            <if test="pid != null">pid = #{pid},</if>
+            <if test="zonetype != null">zonetype = #{zonetype},</if>
+            <if test="planMap != null">plan_map = #{planMap},</if>
+            <if test="introduction != null">introduction = #{introduction},</if>
+            <if test="evacuationMap != null">evacuation_map = #{evacuationMap},</if>
+            <if test="manager != null">manager = #{manager},</if>
+            <if test="managerPhone != null">manager_phone = #{managerPhone},</if>
+            <if test="safetyOfficer != null">safety_officer = #{safetyOfficer},</if>
+            <if test="safetyOfficerPhone != null">safety_officer_phone = #{safetyOfficerPhone},</if>
+            <if test="lng != null">lng = #{lng},</if>
+            <if test="lat != null">lat = #{lat},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteGZoneById" parameterType="Long">
+        delete from g_zone where id = #{id}
+    </delete>
+
+    <delete id="deleteGZoneByIds" parameterType="String">
+        delete from g_zone where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
