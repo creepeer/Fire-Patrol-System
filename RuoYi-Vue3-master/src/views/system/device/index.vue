@@ -109,65 +109,78 @@
               <div class="project-header">
                 <h3>{{ currentProject.zname }} - 设备列表</h3>
                 <span class="total-count">共 {{ total }} 台设备</span>
+                <div class="drag-tips">
+                  <el-tag type="info" size="small">提示：拖拽设备节点可调整父子关系</el-tag>
+                </div>
               </div>
             </el-card>
           </div>
 
-          <!-- 设备表格 -->
-          <el-card v-if="currentProject" shadow="never" class="device-table-card">
-            <el-table v-loading="loading" :data="deviceList" @selection-change="handleSelectionChange">
-              <el-table-column type="selection" width="55" align="center" />
-              <el-table-column label="设备名称" align="center" prop="name" min-width="120" show-overflow-tooltip />
-              <el-table-column label="设备类别" align="center" prop="categoryId" min-width="100" />
-              <el-table-column label="品牌" align="center" prop="brand" min-width="100" />
-              <el-table-column label="型号" align="center" prop="model" min-width="120" />
-              <el-table-column label="是否主机" align="center" prop="isHost" min-width="80">
-                <template #default="scope">
-                  <el-tag :type="scope.row.isHost ? 'success' : 'info'">
-                    {{ scope.row.isHost ? '是' : '否' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="是否总线" align="center" prop="isBus" min-width="80">
-                <template #default="scope">
-                  <el-tag :type="scope.row.isBus ? 'success' : 'info'">
-                    {{ scope.row.isBus ? '是' : '否' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="具体位置" align="center" prop="location" min-width="150" show-overflow-tooltip />
-              <el-table-column label="生产日期" align="center" prop="productionDate" width="110">
-                <template #default="scope">
-                  <span>{{ parseTime(scope.row.productionDate, '{y}-{m}-{d}') }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="启用时间" align="center" prop="startDate" width="110">
-                <template #default="scope">
-                  <span>{{ parseTime(scope.row.startDate, '{y}-{m}-{d}') }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="设备状态" align="center" prop="deviceStatus" min-width="80">
-                <template #default="scope">
-                  <el-tag :type="getDeviceStatusType(scope.row.deviceStatus)">
-                    {{ getDeviceStatusText(scope.row.deviceStatus) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" align="center" width="150" class-name="small-padding fixed-width">
-                <template #default="scope">
-                  <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:device:edit']">修改</el-button>
-                  <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:device:remove']">删除</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+          <!-- 可拖拽设备树 -->
+          <el-card v-if="currentProject" shadow="never" class="device-tree-card">
+            <el-tree
+              ref="deviceTreeRef"
+              :data="deviceTreeData"
+              node-key="id"
+              default-expand-all
+              draggable
+              :allow-drop="allowDrop"
+              :allow-drag="allowDrag"
+              :expand-on-click-node="false"
+              @node-drag-start="handleDragStart"
+              @node-drag-end="handleDragEnd"
+              @node-drop="handleDrop"
+            >
+              <template #default="{ node, data }">
+                <div class="custom-tree-node">
+                  <div class="node-content">
+                    <!-- 设备图标 -->
+                    <span class="node-icon">
+                      <el-icon v-if="data.children && data.children.length > 0" color="#e6a23c">
+                        <Folder />
+                      </el-icon>
+                      <el-icon v-else color="#909399">
+                        <Document />
+                      </el-icon>
+                    </span>
+                    
+                    <!-- 设备名称 -->
+                    <span class="device-name">{{ data.name }}</span>
+                    
+                    <!-- 设备信息标签 -->
+                    <div class="device-tags">
+                      <el-tag v-if="data.isHost" type="success" size="small">主机</el-tag>
+                      <el-tag v-if="data.isBus" type="warning" size="small">总线</el-tag>
+                      <el-tag :type="getDeviceStatusType(data.deviceStatus)" size="small">
+                        {{ getDeviceStatusText(data.deviceStatus) }}
+                      </el-tag>
+                    </div>
+                    
+                    <!-- 设备详情 -->
+                    <div class="device-details">
+                      <span class="device-model">{{ data.model }}</span>
+                      <span class="device-brand">{{ data.brand }}</span>
+                      <span class="device-location">{{ data.location }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 操作按钮 -->
+                  <div class="node-actions">
+                    <el-button link type="primary" size="small" icon="Edit" @click="handleUpdate(data)" v-hasPermi="['system:device:edit']">
+                      修改
+                    </el-button>
+                    <el-button link type="primary" size="small" icon="Delete" @click="handleDelete(data)" v-hasPermi="['system:device:remove']">
+                      删除
+                    </el-button>
+                  </div>
+                </div>
+              </template>
+            </el-tree>
             
-            <pagination
-              v-show="total>0"
-              :total="total"
-              v-model:page="queryParams.pageNum"
-              v-model:limit="queryParams.pageSize"
-              @pagination="getList"
-            />
+            <!-- 空状态 -->
+            <div v-if="deviceTreeData.length === 0 && !loading" class="tree-empty">
+              <el-empty description="暂无设备数据" :image-size="100" />
+            </div>
           </el-card>
 
           <!-- 空状态 -->
@@ -218,26 +231,44 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="具体位置" prop="location">
-              <el-input v-model="form.location" placeholder="请输入具体位置" />
+            <el-form-item label="父设备" prop="parentDeviceId">
+              <el-select 
+                v-model="form.parentDeviceId" 
+                placeholder="请选择父设备"
+                style="width: 100%"
+                clearable
+              >
+                <el-option label="无父设备（根设备）" :value="null" />
+                <el-option
+                  v-for="device in parentDeviceOptions"
+                  :key="device.id"
+                  :label="device.name"
+                  :value="device.id"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row>
+          <el-col :span="12">
+            <el-form-item label="具体位置" prop="location">
+              <el-input v-model="form.location" placeholder="请输入具体位置" />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="品牌" prop="brand">
               <el-input v-model="form.brand" placeholder="请输入品牌" />
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row>
           <el-col :span="12">
             <el-form-item label="型号" prop="model">
               <el-input v-model="form.model" placeholder="请输入型号" />
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row>
           <el-col :span="12">
             <el-form-item label="是否主机" prop="isHost">
               <el-radio-group v-model="form.isHost">
@@ -246,12 +277,22 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row>
           <el-col :span="12">
             <el-form-item label="是否总线" prop="isBus">
               <el-radio-group v-model="form.isBus">
                 <el-radio :label="1">是</el-radio>
                 <el-radio :label="0">否</el-radio>
               </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="使用期限" prop="serviceLife">
+              <el-input v-model="form.serviceLife" placeholder="请输入使用期限">
+                <template #append>年</template>
+              </el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -282,10 +323,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="使用期限" prop="serviceLife">
-              <el-input v-model="form.serviceLife" placeholder="请输入使用期限">
-                <template #append>年</template>
-              </el-input>
+            <el-form-item label="质保开始" prop="warrantyStart">
+              <el-date-picker 
+                clearable
+                v-model="form.warrantyStart"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="请选择质保开始"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -318,10 +364,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, getCurrentInstance, computed, onMounted } from 'vue'
-import { Plus, Edit, Delete, InfoFilled } from '@element-plus/icons-vue'
+import { ref, reactive, getCurrentInstance, computed, onMounted, nextTick } from 'vue'
+import { Plus, Edit, Delete, InfoFilled, Folder, Document } from '@element-plus/icons-vue'
 import { listDevice, getDevice, delDevice, addDevice, updateDevice } from "@/api/system/device"
 import { listZone } from "@/api/system/zone"
+import { ElMessage } from 'element-plus'
 
 const { proxy } = getCurrentInstance()
 
@@ -329,6 +376,9 @@ const { proxy } = getCurrentInstance()
 const zoneTreeData = ref([])
 const projectOptions = ref([])
 const deviceList = ref([])
+const deviceTreeData = ref([])
+const parentDeviceOptions = ref([])
+const deviceTreeRef = ref()
 const open = ref(false)
 const loading = ref(true)
 const showSearch = ref(true)
@@ -338,17 +388,17 @@ const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
 const selectedTopRegion = ref(null)
-const currentProject = ref(null) // 当前选中的项目
-const deviceCountMap = ref({}) // 项目设备数量映射
+const currentProject = ref(null)
+const deviceCountMap = ref({})
 
 const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 1000, // 树状结构需要更多数据
     name: null,
     categoryId: null,
-    projectId: null, // 用于根据项目筛选设备
+    projectId: null,
     zoneId1: null,
     zoneId2: null,
     zoneId3: null,
@@ -429,10 +479,10 @@ const filteredProjects = computed(() => {
 /** 获取设备状态文本 */
 function getDeviceStatusText(status) {
   const statusMap = {
-    0: '停用',
-    1: '启用',
-    2: '维修中',
-    3: '报废'
+    1: '正常',
+    2: '异常',
+    3: '修理中',
+    4: '待复检'
   }
   return statusMap[status] || '未知'
 }
@@ -440,10 +490,10 @@ function getDeviceStatusText(status) {
 /** 获取设备状态标签类型 */
 function getDeviceStatusType(status) {
   const typeMap = {
-    0: 'info',
     1: 'success',
-    2: 'warning',
-    3: 'danger'
+    2: 'danger',
+    3: 'warning',
+    4: 'info'
   }
   return typeMap[status] || 'info'
 }
@@ -451,6 +501,33 @@ function getDeviceStatusType(status) {
 /** 获取项目设备数量 */
 function getDeviceCount(projectId) {
   return deviceCountMap.value[projectId] || 0
+}
+
+/** 将扁平设备数据转换为树状结构 */
+function buildDeviceTree(devices) {
+  const deviceMap = new Map()
+  const tree = []
+  
+  // 创建映射
+  devices.forEach(device => {
+    deviceMap.set(device.id, {
+      ...device,
+      children: []
+    })
+  })
+  
+  // 构建树结构
+  devices.forEach(device => {
+    const node = deviceMap.get(device.id)
+    if (device.parentDeviceId && deviceMap.has(device.parentDeviceId)) {
+      const parent = deviceMap.get(device.parentDeviceId)
+      parent.children.push(node)
+    } else {
+      tree.push(node)
+    }
+  })
+  
+  return tree
 }
 
 /** 查询区域列表 */
@@ -499,11 +576,32 @@ function loadDeviceCounts() {
 /** 查询设备列表 */
 function getList() {
   loading.value = true
+  console.log('查询参数:', queryParams.value)
+  
   listDevice(queryParams.value).then(response => {
-    deviceList.value = response.rows
-    total.value = response.total
+    console.log('API响应数据:', response)
+    deviceList.value = response.rows || response.data || []
+    total.value = response.total || deviceList.value.length
+    
+    // 构建树状结构数据
+    deviceTreeData.value = buildDeviceTree(deviceList.value)
+    console.log('树状设备数据:', deviceTreeData.value)
+    
+    // 更新父设备选项（用于表单选择）
+    updateParentDeviceOptions()
+    
+    loading.value = false
+  }).catch(error => {
+    console.error('API请求错误:', error)
     loading.value = false
   })
+}
+
+/** 更新父设备选项 */
+function updateParentDeviceOptions() {
+  parentDeviceOptions.value = deviceList.value.filter(device => 
+    device.isHost || device.isBus // 只有主机或总线设备可以作为父设备
+  )
 }
 
 /** 顶级区域选择变化 */
@@ -512,6 +610,7 @@ function handleTopRegionChange(regionId) {
   // 清空当前选中的项目
   currentProject.value = null
   deviceList.value = []
+  deviceTreeData.value = []
   queryParams.value.projectId = null
 }
 
@@ -520,7 +619,7 @@ function handleProjectClick(project) {
   currentProject.value = project
   queryParams.value.projectId = project.id
   queryParams.value.pageNum = 1 // 重置页码
-  getList()
+  getList() // 触发设备列表查询
 }
 
 // 取消按钮
@@ -545,6 +644,7 @@ function reset() {
     model: null,
     isHost: 0,
     isBus: 0,
+    parentDeviceId: null,
     productionDate: null,
     startDate: null,
     warrantyStart: null,
@@ -593,6 +693,8 @@ function handleAdd() {
   if (currentProject.value) {
     form.value.projectId = currentProject.value.id
   }
+  // 更新父设备选项
+  updateParentDeviceOptions()
 }
 
 /** 修改按钮操作 */
@@ -603,6 +705,8 @@ function handleUpdate(row) {
     form.value = response.data
     open.value = true
     title.value = "修改设备"
+    // 更新父设备选项
+    updateParentDeviceOptions()
   })
 }
 
@@ -648,6 +752,82 @@ function handleDelete(row) {
       loadDeviceCounts()
     }
   }).catch(() => {})
+}
+
+// 拖拽相关方法
+/** 拖拽开始 */
+const handleDragStart = (node) => {
+  console.log('拖拽开始:', node.data.name)
+}
+
+/** 拖拽结束 */
+const handleDragEnd = (draggingNode, dropNode, dropType) => {
+  console.log('拖拽结束:', draggingNode.data.name, dropNode?.data.name, dropType)
+}
+
+/** 节点放置 */
+const handleDrop = async (draggingNode, dropNode, dropType) => {
+  console.log('节点放置:', draggingNode.data.name, dropNode.data.name, dropType)
+  
+  try {
+    // 计算新的父设备ID
+    let newParentDeviceId = null
+    if (dropType === 'inner') {
+      // 放置在节点内部，作为子节点
+      newParentDeviceId = dropNode.data.id
+    } else if (dropType === 'before' || dropType === 'after') {
+      // 放置在节点前后，与目标节点同级
+      newParentDeviceId = dropNode.data.parentDeviceId
+    }
+    
+    // 更新设备的父设备关系
+    const updateData = {
+      id: draggingNode.data.id,
+      parentDeviceId: newParentDeviceId
+    }
+    
+    await updateDevice(updateData)
+    ElMessage.success('设备关系更新成功')
+    
+    // 重新加载数据
+    getList()
+    
+  } catch (error) {
+    console.error('更新设备关系失败:', error)
+    ElMessage.error('设备关系更新失败')
+    // 拖拽失败，重新加载数据恢复原状
+    getList()
+  }
+}
+
+/** 允许拖拽 */
+const allowDrag = (draggingNode) => {
+  // 所有设备都可以拖拽
+  return true
+}
+
+/** 允许放置 */
+const allowDrop = (draggingNode, dropNode, type) => {
+  // 禁止将设备拖拽到自己的子节点中
+  if (type === 'inner') {
+    const isDescendant = (node, targetId) => {
+      if (node.data.id === targetId) return true
+      if (node.childNodes) {
+        for (const child of node.childNodes) {
+          if (isDescendant(child, targetId)) return true
+        }
+      }
+      return false
+    }
+    
+    if (isDescendant(draggingNode, dropNode.data.id)) {
+      ElMessage.warning('不能将设备拖拽到自己的子节点中')
+      return false
+    }
+  }
+  
+  // 允许其他所有拖拽操作
+  return true
 }
 
 // 初始化
@@ -864,16 +1044,108 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.device-table-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.drag-tips {
+  margin-left: auto;
 }
 
-.device-table-card :deep(.el-card__body) {
+.device-tree-card {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 400px;
+}
+
+.device-tree-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+/* 自定义树节点样式 */
+.custom-tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.custom-tree-node:last-child {
+  border-bottom: none;
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.node-icon {
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.device-name {
+  font-weight: 500;
+  color: #303133;
+  margin-right: 12px;
+  min-width: 120px;
+}
+
+.device-tags {
+  display: flex;
+  gap: 4px;
+  margin-right: 12px;
+}
+
+.device-details {
+  display: flex;
+  gap: 12px;
+  color: #909399;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.device-model,
+.device-brand,
+.device-location {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-model {
+  min-width: 80px;
+  max-width: 120px;
+}
+
+.device-brand {
+  min-width: 60px;
+  max-width: 80px;
+}
+
+.device-location {
+  flex: 1;
+  min-width: 100px;
+}
+
+.node-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+}
+
+.tree-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
 }
 
 .empty-state {
@@ -892,6 +1164,25 @@ onMounted(() => {
 .empty-content p {
   margin-top: 12px;
   font-size: 14px;
+}
+
+/* 树形组件样式优化 */
+.device-tree-card :deep(.el-tree) {
+  flex: 1;
+}
+
+.device-tree-card :deep(.el-tree-node__content) {
+  height: auto;
+  padding: 4px 0;
+}
+
+.device-tree-card :deep(.el-tree-node__children) {
+  padding-left: 16px;
+}
+
+.device-tree-card :deep(.el-tree-node.is-drop-inner) > .el-tree-node__content {
+  background-color: #f0f7ff;
+  border: 1px dashed #409eff;
 }
 
 /* 响应式布局 */
@@ -913,6 +1204,11 @@ onMounted(() => {
   .sidebar {
     width: 280px !important;
   }
+  
+  .device-details {
+    flex-direction: column;
+    gap: 2px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -923,6 +1219,16 @@ onMounted(() => {
   .sidebar {
     width: 100% !important;
     height: 300px;
+  }
+  
+  .custom-tree-node {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .node-actions {
+    align-self: flex-end;
   }
 }
 </style>

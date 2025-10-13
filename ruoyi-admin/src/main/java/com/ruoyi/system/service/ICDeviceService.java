@@ -7,7 +7,7 @@ import com.ruoyi.system.domain.CDevice;
  * 设施设备Service接口
  * 
  * @author ruoyi
- * @date 2025-10-08
+ * @date 2025-10-13
  */
 public interface ICDeviceService 
 {

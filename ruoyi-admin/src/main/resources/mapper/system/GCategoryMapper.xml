@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.GCategoryMapper">
+    
+    <resultMap type="GCategory" id="GCategoryResult">
+        <result property="id"    column="id"    />
+        <result property="cname"    column="cname"    />
+        <result property="pid"    column="pid"    />
+        <result property="ctype"    column="ctype"    />
+        <result property="subjectId"    column="subject_id"    />
+        <result property="cicon"    column="cicon"    />
+        <result property="remark"    column="remark"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectGCategoryVo">
+        select id, cname, pid, ctype, subject_id, cicon, remark, deleted, creator, creator_time, modifier, modifier_time from g_category
+    </sql>
+
+    <select id="selectGCategoryList" parameterType="GCategory" resultMap="GCategoryResult">
+        <include refid="selectGCategoryVo"/>
+        <where>  
+            <if test="cname != null  and cname != ''"> and cname like concat('%', #{cname}, '%')</if>
+            <if test="pid != null "> and pid = #{pid}</if>
+            <if test="ctype != null "> and ctype = #{ctype}</if>
+            <if test="subjectId != null "> and subject_id = #{subjectId}</if>
+            <if test="cicon != null  and cicon != ''"> and cicon = #{cicon}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectGCategoryById" parameterType="Long" resultMap="GCategoryResult">
+        <include refid="selectGCategoryVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertGCategory" parameterType="GCategory" useGeneratedKeys="true" keyProperty="id">
+        insert into g_category
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="cname != null and cname != ''">cname,</if>
+            <if test="pid != null">pid,</if>
+            <if test="ctype != null">ctype,</if>
+            <if test="subjectId != null">subject_id,</if>
+            <if test="cicon != null">cicon,</if>
+            <if test="remark != null">remark,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null and creator != ''">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null and modifier != ''">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="cname != null and cname != ''">#{cname},</if>
+            <if test="pid != null">#{pid},</if>
+            <if test="ctype != null">#{ctype},</if>
+            <if test="subjectId != null">#{subjectId},</if>
+            <if test="cicon != null">#{cicon},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null and creator != ''">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGCategory" parameterType="GCategory">
+        update g_category
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="cname != null and cname != ''">cname = #{cname},</if>
+            <if test="pid != null">pid = #{pid},</if>
+            <if test="ctype != null">ctype = #{ctype},</if>
+            <if test="subjectId != null">subject_id = #{subjectId},</if>
+            <if test="cicon != null">cicon = #{cicon},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteGCategoryById" parameterType="Long">
+        delete from g_category where id = #{id}
+    </delete>
+
+    <delete id="deleteGCategoryByIds" parameterType="String">
+        delete from g_category where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

@@ -6,15 +6,15 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.ruoyi.common.annotation.Excel;
-import com.ruoyi.common.core.domain.BaseEntity;
+import com.ruoyi.common.core.domain.TreeEntity;
 
 /**
  * 设施设备对象 c_device
  * 
  * @author ruoyi
- * @date 2025-10-08
+ * @date 2025-10-13
  */
-public class CDevice extends BaseEntity
+public class CDevice extends TreeEntity
 {
     private static final long serialVersionUID = 1L;
 
@@ -68,6 +68,10 @@ public class CDevice extends BaseEntity
     /** 是否总线（0否，1是） */
     @Excel(name = "是否总线", readConverterExp = "0=否，1是")
     private Integer isBus;
+
+    /** 父设备ID */
+    @Excel(name = "父设备ID")
+    private Long parentDeviceId;
 
     /** 生产日期 */
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -268,6 +272,16 @@ public class CDevice extends BaseEntity
         return isBus;
     }
 
+    public void setParentDeviceId(Long parentDeviceId) 
+    {
+        this.parentDeviceId = parentDeviceId;
+    }
+
+    public Long getParentDeviceId() 
+    {
+        return parentDeviceId;
+    }
+
     public void setProductionDate(Date productionDate) 
     {
         this.productionDate = productionDate;
@@ -444,6 +458,7 @@ public class CDevice extends BaseEntity
             .append("model", getModel())
             .append("isHost", getIsHost())
             .append("isBus", getIsBus())
+            .append("parentDeviceId", getParentDeviceId())
             .append("productionDate", getProductionDate())
             .append("startDate", getStartDate())
             .append("warrantyStart", getWarrantyStart())

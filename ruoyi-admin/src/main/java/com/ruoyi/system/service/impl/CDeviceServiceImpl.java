@@ -11,7 +11,7 @@ import com.ruoyi.system.service.ICDeviceService;
  * 设施设备Service业务层处理
  * 
  * @author ruoyi
- * @date 2025-10-08
+ * @date 2025-10-13
  */
 @Service
 public class CDeviceServiceImpl implements ICDeviceService 

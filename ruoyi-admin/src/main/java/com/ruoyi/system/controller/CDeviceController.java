@@ -19,13 +19,12 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.system.domain.CDevice;
 import com.ruoyi.system.service.ICDeviceService;
 import com.ruoyi.common.utils.poi.ExcelUtil;
-import com.ruoyi.common.core.page.TableDataInfo;
 
 /**
  * 设施设备Controller
  * 
  * @author ruoyi
- * @date 2025-10-08
+ * @date 2025-10-13
  */
 @RestController
 @RequestMapping("/system/device")
@@ -39,11 +38,10 @@ public class CDeviceController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('system:device:list')")
     @GetMapping("/list")
-    public TableDataInfo list(CDevice cDevice)
+    public AjaxResult list(CDevice cDevice)
     {
-        startPage();
         List<CDevice> list = cDeviceService.selectCDeviceList(cDevice);
-        return getDataTable(list);
+        return success(list);
     }
 
     /**

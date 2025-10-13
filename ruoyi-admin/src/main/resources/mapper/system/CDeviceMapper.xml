@@ -18,6 +18,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="model"    column="model"    />
         <result property="isHost"    column="is_host"    />
         <result property="isBus"    column="is_bus"    />
+        <result property="parentDeviceId"    column="parent_device_id"    />
         <result property="productionDate"    column="production_date"    />
         <result property="startDate"    column="start_date"    />
         <result property="warrantyStart"    column="warranty_start"    />
@@ -38,7 +39,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectCDeviceVo">
-        select id, name, category_id, project_id, zone_id1, zone_id2, zone_id3, location, related_location, brand, model, is_host, is_bus, production_date, start_date, warranty_start, service_life, device_status, bind_status, qr_code, qr_url, diagram_2d, lng, lat, remark, deleted, creator, creator_time, modifier, modifier_time from c_device
+        select id, name, category_id, project_id, zone_id1, zone_id2, zone_id3, location, related_location, brand, model, is_host, is_bus, parent_device_id, production_date, start_date, warranty_start, service_life, device_status, bind_status, qr_code, qr_url, diagram_2d, lng, lat, remark, deleted, creator, creator_time, modifier, modifier_time from c_device
     </sql>
 
     <select id="selectCDeviceList" parameterType="CDevice" resultMap="CDeviceResult">
@@ -56,6 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="model != null  and model != ''"> and model = #{model}</if>
             <if test="isHost != null "> and is_host = #{isHost}</if>
             <if test="isBus != null "> and is_bus = #{isBus}</if>
+            <if test="parentDeviceId != null "> and parent_device_id = #{parentDeviceId}</if>
             <if test="productionDate != null "> and production_date = #{productionDate}</if>
             <if test="startDate != null "> and start_date = #{startDate}</if>
             <if test="warrantyStart != null "> and warranty_start = #{warrantyStart}</if>
@@ -95,6 +97,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="model != null">model,</if>
             <if test="isHost != null">is_host,</if>
             <if test="isBus != null">is_bus,</if>
+            <if test="parentDeviceId != null">parent_device_id,</if>
             <if test="productionDate != null">production_date,</if>
             <if test="startDate != null">start_date,</if>
             <if test="warrantyStart != null">warranty_start,</if>
@@ -126,6 +129,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="model != null">#{model},</if>
             <if test="isHost != null">#{isHost},</if>
             <if test="isBus != null">#{isBus},</if>
+            <if test="parentDeviceId != null">#{parentDeviceId},</if>
             <if test="productionDate != null">#{productionDate},</if>
             <if test="startDate != null">#{startDate},</if>
             <if test="warrantyStart != null">#{warrantyStart},</if>
@@ -161,6 +165,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="model != null">model = #{model},</if>
             <if test="isHost != null">is_host = #{isHost},</if>
             <if test="isBus != null">is_bus = #{isBus},</if>
+            <if test="parentDeviceId != null">parent_device_id = #{parentDeviceId},</if>
             <if test="productionDate != null">production_date = #{productionDate},</if>
             <if test="startDate != null">start_date = #{startDate},</if>
             <if test="warrantyStart != null">warranty_start = #{warrantyStart},</if>
