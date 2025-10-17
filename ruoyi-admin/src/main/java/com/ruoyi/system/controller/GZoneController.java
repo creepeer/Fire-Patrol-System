@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletResponse;
 
 
 import com.ruoyi.system.DTO.Building.AddBuildingDTO;
+import com.ruoyi.system.DTO.Classroom.AddClassroomDTO;
 import com.ruoyi.system.DTO.Project.AddProjectDTO;
 import com.ruoyi.system.domain.GBuilding;
 import com.ruoyi.system.domain.GProject;
@@ -157,11 +158,20 @@ public class GZoneController extends BaseController
     @PostMapping("/building")
     public AjaxResult add(@RequestBody AddBuildingDTO Data)
     {
-        System.out.println(Data);
         Long id= gZoneService.insertGZoneBuilding(Data);
-        System.out.println(id);
         return toAjax(gBuildingService.insertGBuilding(Data,id));
     }
+    /**
+     * 添加教室
+     */
+    @PreAuthorize("@ss.hasPermi('system:zone:add')")
+    @Log(title = "区域管理", businessType = BusinessType.INSERT)
+    @PostMapping("/addClassroom")
+    public AjaxResult addClassroom(@RequestBody AddClassroomDTO Data)
+    {
 
+
+        return toAjax(gZoneService.insertGZOneClassroom(Data));
+    }
 
 }

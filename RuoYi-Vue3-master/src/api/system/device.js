@@ -42,3 +42,10 @@ export function delDevice(id) {
     method: 'delete'
   })
 }
+export function listDeviceByZoneId(zoneId) {
+  return request({
+    url: '/system/device/listByZoneId/' + zoneId,
+    method: 'get'
+  })
+}
+

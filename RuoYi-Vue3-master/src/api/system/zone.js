@@ -139,3 +139,10 @@ export function getDataByLevel(levelType, parentId) {
     method: 'get'
   })
 }
+
+export function listDeviceByZoneId(zoneId) {
+  return request({
+    url: '/system/zone/listByZoneId/' + zoneId,
+    method: 'get'
+  })
+}

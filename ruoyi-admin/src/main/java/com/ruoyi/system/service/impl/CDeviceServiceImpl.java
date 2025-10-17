@@ -31,6 +31,15 @@ public class CDeviceServiceImpl implements ICDeviceService
         return cDeviceMapper.selectCDeviceById(id);
     }
 
+
+    /**
+     * 根据区域ID查询设备列表
+     */
+    @Override
+    public List<CDevice> selectCDeviceByZoneId(Long zoneId) {
+        return cDeviceMapper.selectCDeviceByZoneId(zoneId);
+    }
+
     /**
      * 查询设施设备列表
      * 

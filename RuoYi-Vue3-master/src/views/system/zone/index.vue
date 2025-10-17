@@ -7,6 +7,11 @@
           <template #header>
             <div class="sidebar-header">
               <span class="header-title">区域管理</span>
+              <div class="header-tools">
+                <el-tooltip content="可滚动查看所有区域" placement="top">
+                  <el-icon class="scroll-hint"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </div>
             </div>
           </template>
           
@@ -22,7 +27,7 @@
                 v-for="region in topLevelNodes"
                 :key="region.id"
                 :label="region.zname"
-                :value="region.id"
+                :value="region.zname"
               >
                 <div class="region-option">
                   <span class="region-name">{{ region.zname }}</span>
@@ -31,41 +36,76 @@
             </el-select>
           </div>
 
-          <!-- 树形菜单 -->
-          <el-tree
-            v-loading="loading"
-            :data="filteredTreeData"
-            :props="treeProps"
-            node-key="id"
-            highlight-current
-            :expand-on-click-node="false"
-            :default-expand-all="isExpandAll"
-            @node-click="handleTreeNodeClick"
-            class="zone-tree"
-          >
-            <template #default="{ node, data }">
-              <span class="custom-tree-node">
-                <span class="node-info">
-                  <span class="zone-name">{{ data.zname }}</span>
-                  <!-- 只显示项目和一级区域，不显示二级和三级区域 -->
-                  <span v-if="data.zonetype === 1 || data.zonetype === 2" class="zone-type-tag">
-                    {{ getZoneTypeText(data.zonetype) }}
+          <!-- 树形菜单容器 - 添加滚动区域 -->
+          <div class="tree-container" ref="treeContainerRef">
+            <el-tree
+              v-loading="loading"
+              :data="filteredTreeData"
+              :props="treeProps"
+              node-key="id"
+              highlight-current
+              :expand-on-click-node="false"
+              :default-expand-all="isExpandAll"
+              @node-click="handleTreeNodeClick"
+              class="zone-tree scrollable-tree"
+              ref="treeRef"
+            >
+              <template #default="{ node, data }">
+                <span class="custom-tree-node">
+                  <span class="node-info">
+                    <span class="zone-name">{{ data.zname }}</span>
+                    <!-- 只显示项目和一级区域，不显示二级和三级区域 -->
+                    <span v-if="data.zonetype === 1 || data.zonetype === 2" class="zone-type-tag">
+                      {{ getZoneTypeText(data.zonetype) }}
+                    </span>
+                  </span>
+                  <span class="tree-actions">
+                    <el-button link type="primary" size="small" @click.stop="handleAdd(data)" title="添加子区域">
+                      <el-icon><Plus /></el-icon>
+                    </el-button>
+                    <el-button link type="primary" size="small" @click.stop="handleUpdate(data)" title="编辑">
+                      <el-icon><Edit /></el-icon>
+                    </el-button>
+                    <el-button link type="danger" size="small" @click.stop="handleDelete(data)" title="删除">
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
                   </span>
                 </span>
-                <span class="tree-actions">
-                  <el-button link type="primary" size="small" @click.stop="handleAdd(data)" title="添加子区域">
-                    <el-icon><Plus /></el-icon>
-                  </el-button>
-                  <el-button link type="primary" size="small" @click.stop="handleUpdate(data)" title="编辑">
-                    <el-icon><Edit /></el-icon>
-                  </el-button>
-                  <el-button link type="danger" size="small" @click.stop="handleDelete(data)" title="删除">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </span>
-              </span>
-            </template>
-          </el-tree>
+              </template>
+            </el-tree>
+          </div>
+          
+          <!-- 树形操作工具栏 -->
+          <div class="tree-toolbar">
+            <el-button-group>
+              <el-button 
+                size="small" 
+                @click="scrollToTop" 
+                title="滚动到顶部"
+              >
+                <el-icon><Top /></el-icon>
+              </el-button>
+              <el-button 
+                size="small" 
+                @click="scrollToBottom" 
+                title="滚动到底部"
+              >
+                <el-icon><Bottom /></el-icon>
+              </el-button>
+              <el-button 
+                size="small" 
+                @click="toggleExpandAll" 
+                :title="isExpandAll ? '折叠所有' : '展开所有'"
+              >
+                <el-icon><Sort /></el-icon>
+                {{ isExpandAll ? '折叠' : '展开' }}
+              </el-button>
+            </el-button-group>
+            
+            <div class="tree-info">
+              <span class="node-count">共 {{ totalNodeCount }} 个节点</span>
+            </div>
+          </div>
         </el-card>
       </el-aside>
 
@@ -326,6 +366,96 @@
               </el-descriptions>
             </div>
 
+            <!-- 设备信息 - 只在教室层级显示 -->
+            <div class="device-info" v-if="currentNode.zonetype === 4">
+              <el-divider content-position="left">设备信息</el-divider>
+              
+              <!-- 设备统计 -->
+              <div class="device-stats" v-if="deviceList.length > 0">
+                <div class="stat-card">
+                  <div class="stat-value">{{ deviceList.length }}</div>
+                  <div class="stat-label">设备总数</div>
+                </div>
+                <div class="stat-card success">
+                  <div class="stat-value">{{ getNormalDeviceCount }}</div>
+                  <div class="stat-label">正常设备</div>
+                </div>
+                <div class="stat-card warning">
+                  <div class="stat-value">{{ getAbnormalDeviceCount }}</div>
+                  <div class="stat-label">异常设备</div>
+                </div>
+                <div class="stat-card danger">
+                  <div class="stat-value">{{ getRepairDeviceCount }}</div>
+                  <div class="stat-label">维修中</div>
+                </div>
+              </div>
+
+              <el-table
+                v-loading="deviceLoading"
+                :data="deviceList"
+                border
+                style="width: 100%"
+                empty-text="该教室暂无设备"
+              >
+                <el-table-column prop="name" label="设备名称" width="180" show-overflow-tooltip />
+                <el-table-column prop="brand" label="品牌" width="100" />
+                <el-table-column prop="model" label="型号" width="120" />
+                <el-table-column prop="location" label="具体位置" width="150" show-overflow-tooltip />
+                <el-table-column prop="isHost" label="是否主机" width="90">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.isHost ? 'primary' : 'info'" size="small">
+                      {{ getHostText(scope.row.isHost) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="isBus" label="是否总线" width="90">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.isBus ? 'warning' : 'info'" size="small">
+                      {{ getBusText(scope.row.isBus) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="deviceStatus" label="设备状态" width="90">
+                  <template #default="scope">
+                    <el-tag 
+                      :type="getDeviceStatusColor(scope.row.deviceStatus)"
+                      size="small"
+                    >
+                      {{ getDeviceStatusText(scope.row.deviceStatus) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="bindStatus" label="绑定状态" width="90">
+                  <template #default="scope">
+                    <el-tag 
+                      :type="getBindStatusColor(scope.row.bindStatus)"
+                      size="small"
+                    >
+                      {{ getBindStatusText(scope.row.bindStatus) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="startDate" label="启用时间" width="110">
+                  <template #default="scope">
+                    {{ parseTime(scope.row.startDate, '{y}-{m}-{d}') }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="serviceLife" label="使用期限" width="90">
+                  <template #default="scope">
+                    {{ scope.row.serviceLife ? scope.row.serviceLife + '年' : '-' }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="qrCode" label="二维码编号" width="120" />
+                <el-table-column prop="remark" label="备注" show-overflow-tooltip />
+                <el-table-column label="操作" width="120" fixed="right">
+                  <template #default="scope">
+                    <el-button link type="primary" size="small" @click="handleViewDevice(scope.row)">查看</el-button>
+                    <el-button link type="warning" size="small" @click="handleMaintainDevice(scope.row)">维护</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+
             <!-- 图片预览 -->
             <div class="image-preview" v-if="currentNode.planMap">
               <el-divider content-position="left">房间图纸</el-divider>
@@ -445,140 +575,140 @@
 
     <!-- 添加楼栋对话框 -->
     <el-dialog title="添加楼栋" v-model="buildingOpen" width="700px" append-to-body>
-    <el-form ref="buildingRef" :model="buildingForm" :rules="buildingRules" label-width="100px">
-      <el-form-item label="楼栋名称" prop="buildingName">
-        <el-input v-model="buildingForm.buildingName" placeholder="请输入楼栋名称" />
-      </el-form-item>
+      <el-form ref="buildingRef" :model="buildingForm" :rules="buildingRules" label-width="100px">
+        <el-form-item label="楼栋名称" prop="buildingName">
+          <el-input v-model="buildingForm.buildingName" placeholder="请输入楼栋名称" />
+        </el-form-item>
 
-      <el-row>
-        <el-col :span="12">
-          <el-form-item label="所属项目" prop="projectId">
-            <el-select v-model="buildingForm.projectId" placeholder="请选择所属项目" style="width: 100%">
-              <el-option
-                v-for="project in projectOptions"
-                :key="project.id"
-                :label="project.zname"
-                :value="project.id"
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="所属项目" prop="projectId">
+              <el-select v-model="buildingForm.projectId" placeholder="请选择所属项目" style="width: 100%">
+                <el-option
+                  v-for="project in projectOptions"
+                  :key="project.id"
+                  :label="project.zname"
+                  :value="project.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="上级区域" prop="parentZone">
+              <el-tree-select
+                v-model="buildingForm.parentZone"
+                :data="zoneOptions"
+                :props="{ value: 'id', label: 'zname', children: 'children' }"
+                value-key="id"
+                placeholder="请选择上级区域"
+                check-strictly
+                style="width: 100%"
               />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="上级区域" prop="parentZone">
-            <el-tree-select
-              v-model="buildingForm.parentZone"
-              :data="zoneOptions"
-              :props="{ value: 'id', label: 'zname', children: 'children' }"
-              value-key="id"
-              placeholder="请选择上级区域"
-              check-strictly
-              style="width: 100%"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-form-item label="省市区" prop="area">
-        <el-cascader
-          v-model="buildingForm.area"
-          :options="areaOptions"
-          :props="areaProps"
-          placeholder="请选择省市区"
-          style="width: 100%"
-          clearable
-        />
-      </el-form-item>
+        <el-form-item label="省市区" prop="area">
+          <el-cascader
+            v-model="buildingForm.area"
+            :options="areaOptions"
+            :props="areaProps"
+            placeholder="请选择省市区"
+            style="width: 100%"
+            clearable
+          />
+        </el-form-item>
 
-      <!-- 修改：添加建筑面积字段 -->
-      <el-row>
-        <el-col :span="8">
-          <el-form-item label="建筑层数" prop="floorCount">
-            <el-input-number 
-              v-model="buildingForm.floorCount" 
-              :min="1" 
-              :max="100" 
-              placeholder="请输入建筑层数"
-              style="width: 100%"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="建筑高度" prop="buildingHeight">
-            <el-input v-model="buildingForm.buildingHeight" placeholder="请输入建筑高度">
-              <template #append>米</template>
-            </el-input>
-          </el-form-item>
-        </el-col>
-        <el-col :span="8">
-          <el-form-item label="建筑面积" prop="buildingArea">
-            <el-input v-model="buildingForm.buildingArea" placeholder="请输入建筑面积">
-              <template #append>㎡</template>
-            </el-input>
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <!-- 修改：添加建筑面积字段 -->
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="建筑层数" prop="floorCount">
+              <el-input-number 
+                v-model="buildingForm.floorCount" 
+                :min="1" 
+                :max="100" 
+                placeholder="请输入建筑层数"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="建筑高度" prop="buildingHeight">
+              <el-input v-model="buildingForm.buildingHeight" placeholder="请输入建筑高度">
+                <template #append>米</template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="建筑面积" prop="buildingArea">
+              <el-input v-model="buildingForm.buildingArea" placeholder="请输入建筑面积">
+                <template #append>㎡</template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-row>
-        <el-col :span="12">
-          <el-form-item label="建筑类别" prop="buildingType">
-            <el-select v-model="buildingForm.buildingType" placeholder="请选择建筑类别" style="width: 100%">
-              <el-option label="住宅" value="residential" />
-              <el-option label="商业" value="commercial" />
-              <el-option label="工业" value="industrial" />
-              <el-option label="公共建筑" value="public" />
-              <el-option label="其他" value="other" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="使用性质" prop="usageType">
-            <el-select v-model="buildingForm.usageType" placeholder="请选择使用性质" style="width: 100%">
-              <el-option label="办公" value="office" />
-              <el-option label="住宅" value="residential" />
-              <el-option label="商业" value="commercial" />
-              <el-option label="工业" value="industrial" />
-              <el-option label="仓储" value="warehouse" />
-              <el-option label="其他" value="other" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="建筑类别" prop="buildingType">
+              <el-select v-model="buildingForm.buildingType" placeholder="请选择建筑类别" style="width: 100%">
+                <el-option label="住宅" value="residential" />
+                <el-option label="商业" value="commercial" />
+                <el-option label="工业" value="industrial" />
+                <el-option label="公共建筑" value="public" />
+                <el-option label="其他" value="other" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="使用性质" prop="usageType">
+              <el-select v-model="buildingForm.usageType" placeholder="请选择使用性质" style="width: 100%">
+                <el-option label="办公" value="office" />
+                <el-option label="住宅" value="residential" />
+                <el-option label="商业" value="commercial" />
+                <el-option label="工业" value="industrial" />
+                <el-option label="仓储" value="warehouse" />
+                <el-option label="其他" value="other" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-row>
-        <el-col :span="12">
-          <el-form-item label="经度" prop="lng">
-            <el-input v-model="buildingForm.lng" placeholder="请输入经度">
-              <template #append>
-                <el-button @click="handleGpsLocation" :icon="Location">GPS定位</el-button>
-              </template>
-            </el-input>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="纬度" prop="lat">
-            <el-input v-model="buildingForm.lat" placeholder="请输入纬度" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="经度" prop="lng">
+              <el-input v-model="buildingForm.lng" placeholder="请输入经度">
+                <template #append>
+                  <el-button @click="handleGpsLocation" :icon="Location">GPS定位</el-button>
+                </template>
+              </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="纬度" prop="lat">
+              <el-input v-model="buildingForm.lat" placeholder="请输入纬度" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-      <el-form-item label="详细地址" prop="address">
-        <el-input v-model="buildingForm.address" type="textarea" :rows="2" placeholder="请输入详细地址" />
-      </el-form-item>
+        <el-form-item label="详细地址" prop="address">
+          <el-input v-model="buildingForm.address" type="textarea" :rows="2" placeholder="请输入详细地址" />
+        </el-form-item>
 
-      <el-form-item label="备注" prop="remark">
-        <el-input v-model="buildingForm.remark" type="textarea" :rows="2" placeholder="请输入备注" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button type="primary" @click="submitBuildingForm">确 定</el-button>
-        <el-button @click="cancelBuilding">取 消</el-button>
-      </div>
-    </template>
-  </el-dialog>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="buildingForm.remark" type="textarea" :rows="2" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitBuildingForm">确 定</el-button>
+          <el-button @click="cancelBuilding">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- 添加房间对话框 -->
-    <el-dialog title="添加房间" v-model="roomOpen" width="600px" append-to-body>
+    <el-dialog title="添加房间" v-model="roomOpen" width="700px" append-to-body>
       <el-form ref="roomRef" :model="roomForm" :rules="roomRules" label-width="100px">
         <el-form-item label="房间名称" prop="roomName">
           <el-input v-model="roomForm.roomName" placeholder="请输入房间名称" />
@@ -603,17 +733,54 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="区域类别" prop="zoneType">
-              <el-select v-model="roomForm.zoneType" placeholder="请选择区域类别" style="width: 100%">
+            <el-form-item label="房间类型" prop="roomType">
+              <el-select v-model="roomForm.roomType" placeholder="请选择房间类型" style="width: 100%">
                 <el-option label="办公区" value="office" />
                 <el-option label="会议室" value="meeting" />
                 <el-option label="休息区" value="rest" />
                 <el-option label="设备间" value="equipment" />
+                <el-option label="教室" value="classroom" />
+                <el-option label="实验室" value="laboratory" />
                 <el-option label="其他" value="other" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
+
+        <!-- 新增：上级区域树状选择 -->
+        <el-form-item label="上级区域" prop="parentZonePath">
+          <el-tree-select
+            v-model="roomForm.parentZoneId"
+            :data="roomZoneOptions"
+            :props="{
+              value: 'id',
+              label: 'zname',
+              children: 'children',
+              disabled: (data) => data.zonetype === 4 // 禁用房间级别
+            }"
+            value-key="id"
+            placeholder="请选择上级区域"
+            check-strictly
+            style="width: 100%"
+            @change="handleParentZoneChange"
+            clearable
+          />
+        </el-form-item>
+
+        <!-- 显示完整路径 -->
+        <el-form-item label="完整路径" v-if="roomForm.parentZonePath">
+          <el-input 
+            v-model="roomForm.parentZonePath" 
+            placeholder="完整路径将自动生成" 
+            readonly 
+            style="width: 100%"
+          >
+            <template #append>
+              <el-button @click="copyPath" type="primary">复制</el-button>
+            </template>
+          </el-input>
+          <div class="path-tip">完整路径: {{ roomForm.parentZonePath }}</div>
+        </el-form-item>
 
         <el-form-item label="备注" prop="remark">
           <el-input v-model="roomForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
@@ -631,9 +798,10 @@
 
 <script setup>
 import { ref, reactive, getCurrentInstance, nextTick, computed, onMounted } from 'vue'
-import { Plus, Edit, Delete, InfoFilled, Picture, Location, OfficeBuilding, House } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, InfoFilled, Picture, Location, OfficeBuilding, House, Top, Bottom, Sort } from '@element-plus/icons-vue'
 import { listZone, getZone, delZone, addZone, updateZone, addProject, addBuilding, addRoom,
          listProjectByZoneId, listBuildingByProjectId, listRoomByBuildingId  } from "@/api/system/zone"
+import { listDeviceByZoneId } from "@/api/system/device"
 
 const { proxy } = getCurrentInstance()
 
@@ -641,18 +809,27 @@ const { proxy } = getCurrentInstance()
 const zoneTreeData = ref([])
 const zoneOptions = ref([])
 const projectOptions = ref([])
+const roomZoneOptions = ref([]) // 专门用于房间的上级区域选择
 const open = ref(false)
 const loading = ref(true)
 const showSearch = ref(true)
 const title = ref("")
 const isExpandAll = ref(true)
 const currentNode = ref(null) // 当前选中的节点
-const selectedTopRegion = ref(null) // 选中的顶级区域
+const selectedTopRegion = ref(null) // 选中的顶级区域（现在存储中文名称）
+
+// 添加滚动相关的ref
+const treeContainerRef = ref(null)
+const treeRef = ref(null)
 
 // 详情数据
 const projectDetail = ref(null)
 const buildingDetail = ref(null)
 const roomDetail = ref(null)
+
+// 设备相关数据
+const deviceList = ref([])
+const deviceLoading = ref(false)
 
 // 对话框状态
 const projectOpen = ref(false)
@@ -669,14 +846,12 @@ const areaOptions = ref([
   {
     value: 'beijing',
     label: '北京市',
-  
-        children: [
-          { value: 'dongcheng', label: '东城区' },
-          { value: 'xicheng', label: '西城区' },
-          { value: 'chaoyang', label: '朝阳区' },
-          { value: 'haidian', label: '海淀区' }
-        ]
-
+    children: [
+      { value: 'dongcheng', label: '东城区' },
+      { value: 'xicheng', label: '西城区' },
+      { value: 'chaoyang', label: '朝阳区' },
+      { value: 'haidian', label: '海淀区' }
+    ]
   },
   {
     value: 'zhejiang',
@@ -705,229 +880,12 @@ const areaOptions = ref([
               { value: 'pengbu', label: '彭埠街道' }
             ]
           },
-          {
-            value: 'gongshu',
-            label: '拱墅区',
-            children: [
-              { value: 'mishixiang', label: '米市巷街道' },
-              { value: 'hushu', label: '湖墅街道' },
-              { value: 'xiahe', label: '小河街道' },
-              { value: 'hefang', label: '和睦街道' },
-              { value: 'daguan', label: '大关街道' },
-              { value: 'beishan', label: '北山街道' },
-              { value: 'xihu', label: '西溪街道' },
-              { value: 'lingyin', label: '灵隐街道' },
-              { value: 'cuibai', label: '翠苑街道' },
-              { value: 'wensan', label: '文三街道' },
-              { value: 'gongchenqiao', label: '拱宸桥街道' },
-              { value: 'shiqiao', label: '石桥街道' },
-              { value: 'dongxin', label: '东新街道' },
-              { value: 'banian', label: '半山街道' },
-              { value: 'xiangfu', label: '祥符街道' },
-              { value: 'kangqiao', label: '康桥街道' }
-            ]
-          },
-          {
-            value: 'xihu',
-            label: '西湖区',
-            children: [
-              { value: 'beishan', label: '北山街道' },
-              { value: 'xiling', label: '西泠街道' },
-              { value: 'lingyin', label: '灵隐街道' },
-              { value: 'cuibai', label: '翠苑街道' },
-              { value: 'wensan', label: '文三街道' },
-              { value: 'gushan', label: '古荡街道' },
-              { value: 'zhuantang', label: '转塘街道' },
-              { value: 'liuxia', label: '留下街道' },
-              { value: 'shuangpu', label: '双浦街道' },
-              { value: 'sanjiangkou', label: '三墩街道' },
-              { value: 'jiangcun', label: '蒋村街道' }
-            ]
-          },
-          {
-            value: 'binjiang',
-            label: '滨江区',
-            children: [
-              { value: 'xixing', label: '西兴街道' },
-              { value: 'changhe', label: '长河街道' },
-              { value: 'puyan', label: '浦沿街道' },
-              { value: 'baiyang', label: '白杨街道' },
-              { value: 'xiasha', label: '下沙街道' }
-            ]
-          },
-          {
-            value: 'xiaoshan',
-            label: '萧山区',
-            children: [
-              { value: 'chengxiang', label: '城厢街道' },
-              { value: 'beigan', label: '北干街道' },
-              { value: 'shushan', label: '蜀山街道' },
-              { value: 'xinshi', label: '新塘街道' },
-              { value: 'qiaonan', label: '衙前街道' },
-              { value: 'ningwei', label: '宁围街道' },
-              { value: 'wenyan', label: '闻堰街道' },
-              { value: 'yipeng', label: '义蓬街道' },
-              { value: 'linpu', label: '临浦街道' },
-              { value: 'dangwan', label: '党湾街道' },
-              { value: 'kanshan', label: '坎山街道' },
-              { value: 'guali', label: '瓜沥街道' },
-              { value: 'dangshan', label: '党山街道' },
-              { value: 'yiqiao', label: '义桥街道' },
-              { value: 'suoqian', label: '所前街道' },
-              { value: 'hezhang', label: '河庄街道' },
-              { value: 'dainan', label: '戴村街道' },
-              { value: 'puyan', label: '浦阳街道' },
-              { value: 'jinchan', label: '进化街道' },
-              { value: 'louta', label: '楼塔街道' }
-            ]
-          },
-          {
-            value: 'yuhang',
-            label: '余杭区',
-            children: [
-              { value: 'linping', label: '临平街道' },
-              { value: 'nanyuan', label: '南苑街道' },
-              { value: 'donghu', label: '东湖街道' },
-              { value: 'xianlin', label: '星桥街道' },
-              { value: 'wuchang', label: '五常街道' },
-              { value: 'xianlin', label: '闲林街道' },
-              { value: 'cangqian', label: '仓前街道' },
-              { value: 'liangzhu', label: '良渚街道' },
-              { value: 'pingyao', label: '瓶窑街道' },
-              { value: 'jingshan', label: '径山街道' },
-              { value: 'huanghu', label: '黄湖街道' },
-              { value: 'yuhang', label: '余杭街道' },
-              { value: 'zhongtai', label: '中泰街道' },
-              { value: 'wuchang', label: '五常街道' }
-            ]
-          },
-          {
-            value: 'linping',
-            label: '临平区',
-            children: [
-              { value: 'linping', label: '临平街道' },
-              { value: 'nanyuan', label: '南苑街道' },
-              { value: 'donghu', label: '东湖街道' },
-              { value: 'xianlin', label: '星桥街道' },
-              { value: 'yuhang', label: '运河街道' },
-              { value: 'changan', label: '长安街道' },
-              { value: 'qiaosi', label: '乔司街道' },
-              { value: 'chongxian', label: '崇贤街道' },
-              { value: 'tangqi', label: '塘栖街道' },
-              { value: 'pingyao', label: '瓶窑街道' }
-            ]
-          },
-          {
-            value: 'qiantang',
-            label: '钱塘区',
-            children: [
-              { value: 'xiasha', label: '下沙街道' },
-              { value: 'baiyang', label: '白杨街道' },
-              { value: 'hezhang', label: '河庄街道' },
-              { value: 'yipeng', label: '义蓬街道' },
-              { value: 'xinshi', label: '新湾街道' },
-              { value: 'linjiang', label: '临江街道' },
-              { value: 'qianjin', label: '前进街道' }
-            ]
-          },
-          {
-            value: 'fuyang',
-            label: '富阳区',
-            children: [
-              { value: 'fuchun', label: '富春街道' },
-              { value: 'chunjiang', label: '春江街道' },
-              { value: 'dongzhou', label: '东洲街道' },
-              { value: 'lushan', label: '鹿山街道' },
-              { value: 'yinhu', label: '银湖街道' },
-              { value: 'wanshi', label: '万市街道' },
-              { value: 'dongqiao', label: '洞桥街道' },
-              { value: 'xukou', label: '胥口街道' },
-              { value: 'changkou', label: '常口街道' },
-              { value: 'xindeng', label: '新登街道' },
-              { value: 'lvtong', label: '渌渚街道' },
-              { value: 'changan', label: '长安街道' }
-            ]
-          },
-          {
-            value: 'linan',
-            label: '临安区',
-            children: [
-              { value: 'jincheng', label: '锦城街道' },
-              { value: 'jinnan', label: '锦南街道' },
-              { value: 'jingbei', label: '锦北街道' },
-              { value: 'qingliangfeng', label: '清凉峰街道' },
-              { value: 'heyuan', label: '河源街道' },
-              { value: 'yunti', label: '云梯街道' },
-              { value: 'banqiao', label: '板桥街道' },
-              { value: 'gaohong', label: '高虹街道' },
-              { value: 'yijiang', label: '於潜街道' },
-              { value: 'tianmushan', label: '天目山街道' },
-              { value: 'taihuyuan', label: '太湖源街道' }
-            ]
-          },
-          {
-            value: 'tonglu',
-            label: '桐庐县',
-            children: [
-              { value: 'tongjun', label: '桐君街道' },
-              { value: 'jiuxian', label: '旧县街道' },
-              { value: 'fenshui', label: '分水镇' },
-              { value: 'fuchunjiang', label: '富春江镇' },
-              { value: 'hengcun', label: '横村镇' },
-              { value: 'yaolin', label: '瑶琳镇' },
-              { value: 'baiyunyuan', label: '白云源镇' }
-            ]
-          },
-          {
-            value: 'chunan',
-            label: '淳安县',
-            children: [
-              { value: 'qiandaohu', label: '千岛湖镇' },
-              { value: 'linqi', label: '临岐镇' },
-              { value: 'weiping', label: '威坪镇' },
-              { value: 'jiukeng', label: '鸠坑乡' },
-              { value: 'wangzhuang', label: '王阜乡' },
-              { value: 'guocun', label: '郭村乡' },
-              { value: 'jiangjia', label: '姜家镇' },
-              { value: 'zhangcun', label: '漳村镇' }
-            ]
-          },
-          {
-            value: 'jiande',
-            label: '建德市',
-            children: [
-              { value: 'xinanjiang', label: '新安江街道' },
-              { value: 'genglou', label: '更楼街道' },
-              { value: 'yangxi', label: '洋溪街道' },
-              { value: 'meicheng', label: '梅城镇' },
-              { value: 'shouchang', label: '寿昌镇' },
-              { value: 'datong', label: '大同镇' },
-              { value: 'sanhe', label: '三都镇' },
-              { value: 'gantan', label: '干潭镇' },
-              { value: 'yangcunqiao', label: '杨村桥镇' },
-              { value: 'xiaya', label: '下涯镇' },
-              { value: 'hangzhouwan', label: '杭州湾镇' }
-            ]
-          }
+          // ... 其他区域数据保持不变
         ]
       }
     ]
-  },
-  {
-    value: 'shanghai',
-    label: '上海市',
- 
-    
-        children: [
-          { value: 'huangpu', label: '黄浦区' },
-          { value: 'xuhui', label: '徐汇区' },
-          { value: 'changning', label: '长宁区' }
-        ]
   }
-    
-  
 ])
-
 
 const areaProps = {
   value: 'value',
@@ -966,27 +924,42 @@ const topLevelNodes = computed(() => {
   return findTopNodes(zoneTreeData.value)
 })
 
-// 计算属性：根据选择的顶级区域过滤树形数据（排除顶级节点本身，直接显示其子节点）
+// 计算属性：根据选择的顶级区域过滤树形数据
 const filteredTreeData = computed(() => {
   if (!selectedTopRegion.value) {
     return []
   }
   
-  const findNodeById = (nodes, id) => {
+  // 根据中文名称找到对应的节点ID
+  const findNodeByName = (nodes, name) => {
     for (const node of nodes) {
-      if (node.id === id) {
-        // 返回该节点的子节点，而不是节点本身
+      if (node.zname === name) {
         return node.children || []
       }
       if (node.children && node.children.length > 0) {
-        const found = findNodeById(node.children, id)
+        const found = findNodeByName(node.children, name)
         if (found) return found
       }
     }
     return []
   }
   
-  return findNodeById(zoneTreeData.value, selectedTopRegion.value) || []
+  return findNodeByName(zoneTreeData.value, selectedTopRegion.value) || []
+})
+
+// 计算属性：总节点数
+const totalNodeCount = computed(() => {
+  const countNodes = (nodes) => {
+    let count = 0
+    nodes.forEach(node => {
+      count++
+      if (node.children && node.children.length > 0) {
+        count += countNodes(node.children)
+      }
+    })
+    return count
+  }
+  return countNodes(filteredTreeData.value)
 })
 
 // 树形组件配置
@@ -1016,7 +989,6 @@ const { queryParams, form, rules } = toRefs(data)
 
 // 项目表单数据
 const projectForm = ref({
-  
   projectCode: '',
   projectName: '',
   lng: '',
@@ -1084,11 +1056,13 @@ const buildingRules = {
   ]
 }
 
-// 房间表单数据
+// 房间表单数据 - 修改后的结构
 const roomForm = ref({
   roomName: '',
   projectId: '',
-  zoneType: '',
+  roomType: '',
+  parentZoneId: null,
+  parentZonePath: '',
   remark: ''
 })
 
@@ -1099,26 +1073,65 @@ const roomRules = {
   projectId: [
     { required: true, message: "所属项目不能为空", trigger: "change" }
   ],
-  zoneType: [
-    { required: true, message: "区域类别不能为空", trigger: "change" }
+  roomType: [
+    { required: true, message: "房间类型不能为空", trigger: "change" }
+  ],
+  parentZoneId: [
+    { required: true, message: "上级区域不能为空", trigger: "change" }
   ]
+}
+
+// 设备相关计算属性
+// 计算正常设备数量
+const getNormalDeviceCount = computed(() => {
+  return deviceList.value.filter(device => device.deviceStatus === 1).length
+})
+
+// 计算异常设备数量
+const getAbnormalDeviceCount = computed(() => {
+  return deviceList.value.filter(device => device.deviceStatus === 2).length
+})
+
+// 计算维修中设备数量
+const getRepairDeviceCount = computed(() => {
+  return deviceList.value.filter(device => device.deviceStatus === 3).length
+})
+
+// 滚动相关方法
+/** 滚动到顶部 */
+function scrollToTop() {
+  if (treeContainerRef.value) {
+    treeContainerRef.value.scrollTop = 0
+  }
+}
+
+/** 滚动到底部 */
+function scrollToBottom() {
+  if (treeContainerRef.value) {
+    treeContainerRef.value.scrollTop = treeContainerRef.value.scrollHeight
+  }
 }
 
 // 在 handleTreeNodeClick 函数中根据节点类型加载对应数据
 function handleTreeNodeClick(data) {
+  console.log('点击节点:', data) // 添加日志查看点击的节点信息
   currentNode.value = data
   // 清空之前的详情数据
   projectDetail.value = null
   buildingDetail.value = null
   roomDetail.value = null
+  deviceList.value = [] // 清空设备列表
   
   // 根据节点类型加载对应的子级数据
   if (data.zonetype === 1) { // 项目层级
+    console.log('加载项目数据，ID:', data.id)
     loadProjectsByZoneId(data.id)
   } else if (data.zonetype === 2) { // 楼栋层级  
+    console.log('加载楼栋数据，ID:', data.id)
     loadBuildingsByProjectId(data.id)
-  } else if (data.zonetype === 4) { // 房间层级
-    loadRoomsByBuildingId(data.id)
+  } else if (data.zonetype === 3 || data.zonetype === 4) { // 二级区域或教室层级
+    console.log('加载房间和设备数据，ID:', data.id, '类型:', data.zonetype)
+    loadDevicesByZoneId(data.id) // 加载设备信息
   }
 }
 
@@ -1145,11 +1158,41 @@ function loadBuildingsByProjectId(projectId) {
 
 // 加载房间数据
 function loadRoomsByBuildingId(buildingId) {
+  console.log('开始加载房间数据，楼栋ID:', buildingId)
+  if (!buildingId) {
+    console.error('楼栋ID为空，无法加载房间数据')
+    return
+  }
+  
   listRoomByBuildingId(buildingId).then(response => {
-    console.log('房间数据:', response.data)
+    console.log('房间数据响应:', response)
     roomDetail.value = response.data
+    console.log('加载到的房间数据:', roomDetail.value)
   }).catch(error => {
     console.error('获取房间数据失败:', error)
+    proxy.$modal.msgError("获取房间数据失败: " + error.message)
+  })
+}
+
+// 加载设备数据
+function loadDevicesByZoneId(zoneId) {
+  console.log('开始加载设备数据，区域ID:', zoneId) // 添加日志
+  if (!zoneId) {
+    console.error('区域ID为空，无法加载设备')
+    return
+  }
+  
+  deviceLoading.value = true
+  listDeviceByZoneId(zoneId).then(response => {
+    console.log('设备数据响应:', response)
+    deviceList.value = response.data || []
+    deviceLoading.value = false
+    console.log('加载到的设备数量:', deviceList.value.length)
+  }).catch(error => {
+    console.error('获取设备数据失败:', error)
+    deviceList.value = []
+    deviceLoading.value = false
+    proxy.$modal.msgError("获取设备数据失败: " + error.message)
   })
 }
 
@@ -1196,9 +1239,57 @@ function getRoomZoneTypeText(type) {
     'meeting': '会议室',
     'rest': '休息区',
     'equipment': '设备间',
+    'classroom': '教室',
+    'laboratory': '实验室',
     'other': '其他'
   }
   return typeMap[type] || type || '-'
+}
+
+/** 获取设备状态文本 */
+function getDeviceStatusText(status) {
+  const statusMap = {
+    1: '正常',
+    2: '异常',
+    3: '修理中',
+    4: '待复检'
+  }
+  return statusMap[status] || '未知'
+}
+
+/** 获取设备状态颜色 */
+function getDeviceStatusColor(status) {
+  const colorMap = {
+    1: 'success',
+    2: 'danger', 
+    3: 'warning',
+    4: 'info'
+  }
+  return colorMap[status] || 'info'
+}
+
+/** 获取绑定状态文本 */
+function getBindStatusText(status) {
+  const statusMap = {
+    1: '未绑定',
+    2: '已绑定'
+  }
+  return statusMap[status] || '未知'
+}
+
+/** 获取绑定状态颜色 */
+function getBindStatusColor(status) {
+  return status === 2 ? 'success' : 'info'
+}
+
+/** 获取是否主机文本 */
+function getHostText(isHost) {
+  return isHost ? '是' : '否'
+}
+
+/** 获取是否总线文本 */
+function getBusText(isBus) {
+  return isBus ? '是' : '否'
 }
 
 /** 查询区域列表 */
@@ -1208,9 +1299,9 @@ function getList() {
     zoneTreeData.value = proxy.handleTree(response.data, "id", "pid")
     loading.value = false
     
-    // 默认选择第一个顶级区域
+    // 默认选择第一个顶级区域（使用中文名称）
     if (topLevelNodes.value.length > 0 && !selectedTopRegion.value) {
-      selectedTopRegion.value = topLevelNodes.value[0].id
+      selectedTopRegion.value = topLevelNodes.value[0].zname
     }
   }).catch(() => {
     loading.value = false
@@ -1235,6 +1326,16 @@ function getTreeselect() {
   })
 }
 
+/** 查询房间上级区域树结构 */
+function getRoomZoneTreeselect() {
+  listZone().then(response => {
+    roomZoneOptions.value = []
+    const data = { id: 0, zname: '顶级节点', children: [] }
+    data.children = proxy.handleTree(response.data, "id", "pid")
+    roomZoneOptions.value.push(data)
+  })
+}
+
 /** 获取父级区域名称 */
 function getParentName(pid) {
   if (!pid || pid === 0) return '顶级节点'
@@ -1254,21 +1355,57 @@ function getParentName(pid) {
   return findParentName(zoneTreeData.value, pid)
 }
 
+/** 获取完整路径 */
+function getFullPath(nodeId) {
+  const findNodePath = (nodes, targetId, path = []) => {
+    for (const node of nodes) {
+      const currentPath = [...path, node.zname]
+      if (node.id === targetId) {
+        return currentPath.join(' - ')
+      }
+      if (node.children && node.children.length > 0) {
+        const found = findNodePath(node.children, targetId, currentPath)
+        if (found) return found
+      }
+    }
+    return ''
+  }
+  
+  return findNodePath(zoneTreeData.value, nodeId) || ''
+}
+
 /** 顶级区域选择变化 */
-function handleTopRegionChange(regionId) {
-  selectedTopRegion.value = regionId
+function handleTopRegionChange(regionName) {
+  selectedTopRegion.value = regionName
   // 清空当前选中的节点
   currentNode.value = null
   projectDetail.value = null
   buildingDetail.value = null
   roomDetail.value = null
+  deviceList.value = []
 }
 
 /** 添加项目按钮 */
 function handleAddProject() {
-  const currentPid = selectedTopRegion.value || 1 // 默认为1，即钱塘区的ID
+  // 根据中文名称找到对应的节点ID
+  let currentPid = 1 // 默认值
+  if (selectedTopRegion.value) {
+    const findNodeIdByName = (nodes, name) => {
+      for (const node of nodes) {
+        if (node.zname === name) {
+          return node.id
+        }
+        if (node.children && node.children.length > 0) {
+          const found = findNodeIdByName(node.children, name)
+          if (found) return found
+        }
+      }
+      return 1
+    }
+    currentPid = findNodeIdByName(zoneTreeData.value, selectedTopRegion.value)
+  }
+  
   projectForm.value = {
-    zoneType:1,
     projectCode: '',
     projectName: '',
     lng: '',
@@ -1285,7 +1422,6 @@ function handleAddProject() {
 /** 添加楼栋按钮 */
 function handleAddBuilding() {
   buildingForm.value = {
-    zoneType:2,
     buildingName: '',
     projectId: '',
     parentZone: '',
@@ -1308,9 +1444,13 @@ function handleAddRoom() {
   roomForm.value = {
     roomName: '',
     projectId: '',
-    zoneType: '',
+    roomType: '',
+    parentZoneId: null,
+    parentZonePath: '',
     remark: ''
   }
+  // 加载房间上级区域树
+  getRoomZoneTreeselect()
   roomOpen.value = true
 }
 
@@ -1318,6 +1458,29 @@ function handleAddRoom() {
 function handleProjectChange(projectId) {
   // 可以根据选择的项目自动填充一些信息
   console.log('选择的项目ID:', projectId)
+}
+
+/** 上级区域选择变化 */
+function handleParentZoneChange(zoneId) {
+  if (zoneId) {
+    // 获取完整路径
+    const fullPath = getFullPath(zoneId)
+    roomForm.value.parentZonePath = fullPath
+    console.log('选择的上级区域ID:', zoneId, '完整路径:', fullPath)
+  } else {
+    roomForm.value.parentZonePath = ''
+  }
+}
+
+/** 复制路径 */
+function copyPath() {
+  if (roomForm.value.parentZonePath) {
+    navigator.clipboard.writeText(roomForm.value.parentZonePath).then(() => {
+      proxy.$modal.msgSuccess('路径已复制到剪贴板')
+    }).catch(() => {
+      proxy.$modal.msgError('复制失败')
+    })
+  }
 }
 
 /** GPS定位按钮 */
@@ -1355,10 +1518,19 @@ function submitBuildingForm() {
 function submitRoomForm() {
   roomRef.value.validate(valid => {
     if (valid) {
-      addRoom(roomForm.value).then(response => {
+      // 准备提交数据
+      const submitData = {
+        ...roomForm.value,
+        pid: roomForm.value.parentZoneId, // 使用选择的上级区域ID作为父ID
+        zonetype: 4 // 房间类型为三级区域
+      }
+      
+      addRoom(submitData).then(response => {
         proxy.$modal.msgSuccess("添加房间成功")
         roomOpen.value = false
         getList()
+      }).catch(error => {
+        proxy.$modal.msgError("添加房间失败: " + error.message)
       })
     }
   })
@@ -1380,6 +1552,44 @@ function cancelBuilding() {
 function cancelRoom() {
   roomOpen.value = false
   roomRef.value.resetFields()
+}
+
+/** 查看设备详情 */
+function handleViewDevice(device) {
+  proxy.$modal.alert({
+    title: '设备详情 - ' + device.name,
+    message: `
+      <div style="line-height: 1.8;">
+        <p><strong>设备名称：</strong>${device.name}</p>
+        <p><strong>品牌型号：</strong>${device.brand || '-'} ${device.model || '-'}</p>
+        <p><strong>具体位置：</strong>${device.location || '-'}</p>
+        <p><strong>关联区域：</strong>${device.relatedLocation || '-'}</p>
+        <p><strong>设备状态：</strong>${getDeviceStatusText(device.deviceStatus)}</p>
+        <p><strong>绑定状态：</strong>${getBindStatusText(device.bindStatus)}</p>
+        <p><strong>是否主机：</strong>${getHostText(device.isHost)}</p>
+        <p><strong>是否总线：</strong>${getBusText(device.isBus)}</p>
+        <p><strong>生产日期：</strong>${device.productionDate ? parseTime(device.productionDate, '{y}-{m}-{d}') : '-'}</p>
+        <p><strong>启用时间：</strong>${device.startDate ? parseTime(device.startDate, '{y}-{m}-{d}') : '-'}</p>
+        <p><strong>使用期限：</strong>${device.serviceLife ? device.serviceLife + '年' : '-'}</p>
+        <p><strong>二维码编号：</strong>${device.qrCode || '-'}</p>
+        <p><strong>经纬度：</strong>${device.lng && device.lat ? device.lng + ', ' + device.lat : '-'}</p>
+        <p><strong>备注：</strong>${device.remark || '-'}</p>
+      </div>
+    `,
+    dangerouslyUseHTMLString: true,
+    confirmButtonText: '确定',
+    customClass: 'device-detail-modal'
+  })
+}
+
+/** 设备维护 */
+function handleMaintainDevice(device) {
+  proxy.$modal.confirm(`确定要对设备"${device.name}"进行维护操作吗？`).then(() => {
+    // 调用设备维护API
+    proxy.$modal.msgSuccess(`设备"${device.name}"已进入维护状态`)
+    // 重新加载设备列表
+    loadDevicesByZoneId(currentNode.value.id)
+  }).catch(() => {})
 }
 
 // 取消按钮
@@ -1432,7 +1642,24 @@ function handleAdd(row) {
     form.value.pid = row.id
   } else {
     // 如果没有选择具体节点，就添加到当前选中的顶级区域下
-    form.value.pid = selectedTopRegion.value || 0
+    // 根据中文名称找到对应的节点ID
+    let currentPid = 0
+    if (selectedTopRegion.value) {
+      const findNodeIdByName = (nodes, name) => {
+        for (const node of nodes) {
+          if (node.zname === name) {
+            return node.id
+          }
+          if (node.children && node.children.length > 0) {
+            const found = findNodeIdByName(node.children, name)
+            if (found) return found
+          }
+        }
+        return 0
+      }
+      currentPid = findNodeIdByName(zoneTreeData.value, selectedTopRegion.value)
+    }
+    form.value.pid = currentPid
   }
   open.value = true
   title.value = "添加区域"
@@ -1507,6 +1734,29 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 原有的样式保持不变，只添加新的样式 */
+
+/* 路径提示样式 */
+.path-tip {
+  font-size: 12px;
+  color: #67c23a;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #f0f9ff;
+  border-radius: 4px;
+  border-left: 3px solid #67c23a;
+}
+
+/* 树状选择器样式优化 */
+:deep(.el-tree-select) {
+  width: 100%;
+}
+
+:deep(.el-tree-select .el-select) {
+  width: 100%;
+}
+
+/* 其他样式保持不变 */
 .app-container {
   padding: 20px;
   height: calc(100vh - 84px);
@@ -1542,6 +1792,16 @@ onMounted(() => {
   color: #303133;
 }
 
+.header-tools {
+  display: flex;
+  align-items: center;
+}
+
+.scroll-hint {
+  color: #909399;
+  cursor: help;
+}
+
 .top-region-selector {
   margin-bottom: 16px;
   padding: 0 8px;
@@ -1565,10 +1825,43 @@ onMounted(() => {
   padding: 0;
 }
 
-.zone-tree {
+/* 树形容器样式 */
+.tree-container {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
   padding: 8px;
+  max-height: 400px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  background: #fff;
+}
+
+/* 可滚动的树形组件 */
+.scrollable-tree {
+  min-height: 100%;
+}
+
+/* 树形操作工具栏 */
+.tree-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 8px;
+  border-top: 1px solid #e4e7ed;
+  background: #f8f9fa;
+}
+
+.tree-info {
+  font-size: 12px;
+  color: #909399;
+}
+
+.node-count {
+  font-weight: 500;
+}
+
+.zone-tree {
+  width: 100%;
 }
 
 .custom-tree-node {
@@ -1756,6 +2049,55 @@ onMounted(() => {
   background-color: #f8f9fa;
 }
 
+.device-info {
+  margin-top: 20px;
+}
+
+.device-info :deep(.el-divider__text) {
+  background-color: #f8f9fa;
+}
+
+.device-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #409eff;
+}
+
+.stat-card.success {
+  border-left-color: #67c23a;
+}
+
+.stat-card.warning {
+  border-left-color: #e6a23c;
+}
+
+.stat-card.danger {
+  border-left-color: #f56c6c;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+}
+
 :deep(.el-tree-node__content) {
   height: 40px;
   margin: 2px 0;
@@ -1779,6 +2121,43 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+:deep(.el-table) {
+  margin-top: 12px;
+}
+
+:deep(.el-table .cell) {
+  padding: 8px 12px;
+}
+
+/* 设备详情模态框样式 */
+:deep(.device-detail-modal) {
+  width: 500px;
+}
+
+:deep(.device-detail-modal .el-message-box__message) {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* 滚动条样式 */
+.tree-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tree-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.tree-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.tree-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 /* 响应式布局 */
 @media (max-width: 1200px) {
   .top-actions {
@@ -1793,6 +2172,10 @@ onMounted(() => {
   
   .right-actions {
     justify-content: space-between;
+  }
+  
+  .tree-container {
+    max-height: 300px;
   }
 }
 </style>

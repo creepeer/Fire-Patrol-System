@@ -41,7 +41,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="selectCDeviceVo">
         select id, name, category_id, project_id, zone_id1, zone_id2, zone_id3, location, related_location, brand, model, is_host, is_bus, parent_device_id, production_date, start_date, warranty_start, service_life, device_status, bind_status, qr_code, qr_url, diagram_2d, lng, lat, remark, deleted, creator, creator_time, modifier, modifier_time from c_device
     </sql>
-
+    <!-- 根据区域ID查询设备列表 -->
+    <select id="selectCDeviceByZoneId" parameterType="Long" resultMap="CDeviceResult">
+        <include refid="selectCDeviceVo"/>
+        WHERE (zone_id1 = #{zoneId} OR zone_id2 = #{zoneId} OR zone_id3 = #{zoneId})
+        AND deleted = 0
+        ORDER BY id DESC
+    </select>
     <select id="selectCDeviceList" parameterType="CDevice" resultMap="CDeviceResult">
         <include refid="selectCDeviceVo"/>
         <where>  

@@ -99,4 +99,12 @@ public class CDeviceController extends BaseController
     {
         return toAjax(cDeviceService.deleteCDeviceByIds(ids));
     }
+
+    @GetMapping("/listByZoneId/{zoneId}")
+    public AjaxResult listByZoneId(@PathVariable("zoneId") Long zoneId)
+    {
+        List<CDevice> list = cDeviceService.selectCDeviceByZoneId(zoneId);
+        return success(list);
+    }
+
 }

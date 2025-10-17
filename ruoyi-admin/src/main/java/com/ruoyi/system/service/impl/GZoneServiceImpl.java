@@ -3,6 +3,7 @@ package com.ruoyi.system.service.impl;
 import java.util.List;
 
 import com.ruoyi.system.DTO.Building.AddBuildingDTO;
+import com.ruoyi.system.DTO.Classroom.AddClassroomDTO;
 import com.ruoyi.system.DTO.Project.AddProjectDTO;
 import com.ruoyi.system.domain.GBuilding;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,5 +124,24 @@ public class GZoneServiceImpl implements IGZoneService
     @Override
     public Long selectIdByZnameAndPid(String name,Long pid){
         return gZoneMapper.selectIdByZNameAndPid(name,pid);
+    }
+
+    @Override
+    public  int insertGZOneClassroom(AddClassroomDTO Data){
+        GZone gZone=new GZone();
+        gZone.setZname(Data.getZname());
+        gZone.setRemark(Data.getRemark());
+        gZone.setPid(Data.getPid());
+        gZone.setLat(Data.getLat());
+        gZone.setLng(Data.getLng());
+        gZone.setSafetyOfficerPhone(Data.getSafetyOfficerPhone());
+        gZone.setSafetyOfficer(Data.getSafetyOfficerPhone());
+        gZone.setManagerPhone(Data.getManagerPhone());
+        gZone.setManager(Data.getManager());
+        gZone.setIntroduction(Data.getIntroduction());
+        gZone.setPlanMap(Data.getPlanMap());
+        gZone.setEvacuationMap(Data.getEvacuationMap());
+        gZoneMapper.insertGZone(gZone);
+        return 0;
     }
 }

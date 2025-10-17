@@ -58,4 +58,6 @@ public interface ICDeviceService
      * @return 结果
      */
     public int deleteCDeviceById(Long id);
+
+    List<CDevice> selectCDeviceByZoneId(Long zoneId);
 }

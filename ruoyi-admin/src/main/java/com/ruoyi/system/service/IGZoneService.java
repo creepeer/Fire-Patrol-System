@@ -3,6 +3,7 @@ package com.ruoyi.system.service;
 import java.util.List;
 
 import com.ruoyi.system.DTO.Building.AddBuildingDTO;
+import com.ruoyi.system.DTO.Classroom.AddClassroomDTO;
 import com.ruoyi.system.DTO.Project.AddProjectDTO;
 import com.ruoyi.system.domain.GZone;
 
@@ -67,4 +68,5 @@ public interface IGZoneService
 
     Long selectIdByZnameAndPid(String projectName, Long pid);
 
+    int insertGZOneClassroom(AddClassroomDTO data);
 }
