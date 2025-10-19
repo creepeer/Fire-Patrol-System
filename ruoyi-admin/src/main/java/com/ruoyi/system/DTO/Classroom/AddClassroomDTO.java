@@ -21,6 +21,10 @@ public class AddClassroomDTO {
     @Size(min = 2, max = 100, message = "教室名称长度必须在2-100个字符之间")
     private String zname;
 
+    @ApiModelProperty(value = "区域类型", required = true, example = "4")
+    @NotNull(message = "区域类型不能为空")
+    private Long zonetype;  // 关键修改：改为全小写
+
     @ApiModelProperty(value = "父级区域ID", required = true, example = "1")
     @NotNull(message = "父级区域ID不能为空")
     private Long pid;
@@ -75,11 +79,12 @@ public class AddClassroomDTO {
     public AddClassroomDTO() {
     }
 
-    public AddClassroomDTO(String zname, Long pid, Long projectId, String roomType) {
+    public AddClassroomDTO(String zname, Long pid, Long projectId, String roomType, Long zonetype) {
         this.zname = zname;
         this.pid = pid;
         this.projectId = projectId;
         this.roomType = roomType;
+        this.zonetype = zonetype;
     }
 
     // Getter和Setter方法
@@ -89,6 +94,14 @@ public class AddClassroomDTO {
 
     public void setZname(String zname) {
         this.zname = zname;
+    }
+
+    public Long getZonetype() {
+        return zonetype;
+    }
+
+    public void setZonetype(Long zonetype) {
+        this.zonetype = zonetype;
     }
 
     public Long getPid() {
@@ -199,6 +212,7 @@ public class AddClassroomDTO {
     public String toString() {
         return "AddClassroomDTO{" +
                 "zname='" + zname + '\'' +
+                ", zonetype=" + zonetype +
                 ", pid=" + pid +
                 ", projectId=" + projectId +
                 ", roomType='" + roomType + '\'' +

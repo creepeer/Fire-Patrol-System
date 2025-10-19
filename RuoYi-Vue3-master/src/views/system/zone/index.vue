@@ -708,91 +708,146 @@
     </el-dialog>
 
     <!-- 添加房间对话框 -->
-    <el-dialog title="添加房间" v-model="roomOpen" width="700px" append-to-body>
-      <el-form ref="roomRef" :model="roomForm" :rules="roomRules" label-width="100px">
-        <el-form-item label="房间名称" prop="roomName">
-          <el-input v-model="roomForm.roomName" placeholder="请输入房间名称" />
-        </el-form-item>
+<el-dialog title="添加房间" v-model="roomOpen" width="700px" append-to-body>
+  <el-form ref="roomRef" :model="roomForm" :rules="roomRules" label-width="100px">
+    <el-form-item label="房间名称" prop="roomName">
+      <el-input v-model="roomForm.roomName" placeholder="请输入房间名称" />
+    </el-form-item>
 
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="所属项目" prop="projectId">
-              <el-select 
-                v-model="roomForm.projectId" 
-                placeholder="请选择所属项目" 
-                style="width: 100%"
-                @change="handleProjectChange"
-              >
-                <el-option
-                  v-for="project in projectOptions"
-                  :key="project.id"
-                  :label="project.zname"
-                  :value="project.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="房间类型" prop="roomType">
-              <el-select v-model="roomForm.roomType" placeholder="请选择房间类型" style="width: 100%">
-                <el-option label="办公区" value="office" />
-                <el-option label="会议室" value="meeting" />
-                <el-option label="休息区" value="rest" />
-                <el-option label="设备间" value="equipment" />
-                <el-option label="教室" value="classroom" />
-                <el-option label="实验室" value="laboratory" />
-                <el-option label="其他" value="other" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <!-- 新增：上级区域树状选择 -->
-        <el-form-item label="上级区域" prop="parentZonePath">
-          <el-tree-select
-            v-model="roomForm.parentZoneId"
-            :data="roomZoneOptions"
-            :props="{
-              value: 'id',
-              label: 'zname',
-              children: 'children',
-              disabled: (data) => data.zonetype === 4 // 禁用房间级别
-            }"
-            value-key="id"
-            placeholder="请选择上级区域"
-            check-strictly
+    <el-row>
+      <el-col :span="12">
+        <el-form-item label="所属项目" prop="projectId">
+          <el-select 
+            v-model="roomForm.projectId" 
+            placeholder="请选择所属项目" 
             style="width: 100%"
-            @change="handleParentZoneChange"
-            clearable
-          />
-        </el-form-item>
-
-        <!-- 显示完整路径 -->
-        <el-form-item label="完整路径" v-if="roomForm.parentZonePath">
-          <el-input 
-            v-model="roomForm.parentZonePath" 
-            placeholder="完整路径将自动生成" 
-            readonly 
-            style="width: 100%"
+            @change="handleProjectChange"
           >
-            <template #append>
-              <el-button @click="copyPath" type="primary">复制</el-button>
-            </template>
-          </el-input>
-          <div class="path-tip">完整路径: {{ roomForm.parentZonePath }}</div>
+            <el-option
+              v-for="project in projectOptions"
+              :key="project.id"
+              :label="project.zname"
+              :value="project.id"
+            />
+          </el-select>
         </el-form-item>
+      </el-col>
+      <el-col :span="12">
+        <el-form-item label="房间类型" prop="roomType">
+          <el-select v-model="roomForm.roomType" placeholder="请选择房间类型" style="width: 100%">
+            <el-option label="办公区" value="office" />
+            <el-option label="会议室" value="meeting" />
+            <el-option label="休息区" value="rest" />
+            <el-option label="设备间" value="equipment" />
+            <el-option label="教室" value="classroom" />
+            <el-option label="实验室" value="laboratory" />
+            <el-option label="其他" value="other" />
+          </el-select>
+        </el-form-item>
+      </el-col>
+    </el-row>
 
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="roomForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+    <!-- 新增：上级区域树状选择 -->
+    <el-form-item label="上级区域" prop="parentZoneId">
+      <el-tree-select
+        v-model="roomForm.parentZoneId"
+        :data="roomZoneOptions"
+        :props="{
+          value: 'id',
+          label: 'zname',
+          children: 'children',
+          disabled: (data) => data.zonetype === 4 // 禁用房间级别
+        }"
+        value-key="id"
+        placeholder="请选择上级区域"
+        check-strictly
+        style="width: 100%"
+        @change="handleParentZoneChange"
+        clearable
+      />
+    </el-form-item>
+
+    <!-- 显示完整路径 -->
+    <el-form-item label="完整路径" v-if="roomForm.parentZonePath">
+      <el-input 
+        v-model="roomForm.parentZonePath" 
+        placeholder="完整路径将自动生成" 
+        readonly 
+        style="width: 100%"
+      >
+        <template #append>
+          <el-button @click="copyPath" type="primary">复制</el-button>
+        </template>
+      </el-input>
+      <div class="path-tip">完整路径: {{ roomForm.parentZonePath }}</div>
+    </el-form-item>
+
+    <!-- 新增：继承信息展示和编辑 -->
+    <el-divider content-position="left">继承信息（来自上级区域）</el-divider>
+    
+    <el-row>
+      <el-col :span="12">
+        <el-form-item label="经度">
+          <el-input v-model="roomForm.lng" placeholder="自动继承或手动输入经度" />
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="submitRoomForm">确 定</el-button>
-          <el-button @click="cancelRoom">取 消</el-button>
-        </div>
-      </template>
-    </el-dialog>
+      </el-col>
+      <el-col :span="12">
+        <el-form-item label="纬度">
+          <el-input v-model="roomForm.lat" placeholder="自动继承或手动输入纬度" />
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <el-row>
+      <el-col :span="12">
+        <el-form-item label="管理人">
+          <el-input v-model="roomForm.manager" placeholder="自动继承或手动输入管理人" />
+        </el-form-item>
+      </el-col>
+      <el-col :span="12">
+        <el-form-item label="管理人电话">
+          <el-input v-model="roomForm.managerPhone" placeholder="自动继承或手动输入电话" />
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <el-row>
+      <el-col :span="12">
+        <el-form-item label="安全责任人">
+          <el-input v-model="roomForm.safetyOfficer" placeholder="自动继承或手动输入安全责任人" />
+        </el-form-item>
+      </el-col>
+      <el-col :span="12">
+        <el-form-item label="责任人电话">
+          <el-input v-model="roomForm.safetyOfficerPhone" placeholder="自动继承或手动输入电话" />
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <el-row>
+      <el-col :span="12">
+        <el-form-item label="平面图URL">
+          <el-input v-model="roomForm.planMap" placeholder="自动继承或手动输入平面图URL" />
+        </el-form-item>
+      </el-col>
+      <el-col :span="12">
+        <el-form-item label="疏散图URL">
+          <el-input v-model="roomForm.evacuationMap" placeholder="自动继承或手动输入疏散图URL" />
+        </el-form-item>
+      </el-col>
+    </el-row>
+
+    <el-form-item label="备注" prop="remark">
+      <el-input v-model="roomForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <div class="dialog-footer">
+      <el-button type="primary" @click="submitRoomForm">确 定</el-button>
+      <el-button @click="cancelRoom">取 消</el-button>
+    </div>
+  </template>
+</el-dialog>
   </div>
 </template>
 
@@ -1056,13 +1111,21 @@ const buildingRules = {
   ]
 }
 
-// 房间表单数据 - 修改后的结构
+// 房间表单数据
 const roomForm = ref({
   roomName: '',
   projectId: '',
   roomType: '',
   parentZoneId: null,
   parentZonePath: '',
+  lng: '',
+  lat: '',
+  manager: '',
+  managerPhone: '',
+  safetyOfficer: '',
+  safetyOfficerPhone: '',
+  planMap: '',
+  evacuationMap: '',
   remark: ''
 })
 
@@ -1447,6 +1510,14 @@ function handleAddRoom() {
     roomType: '',
     parentZoneId: null,
     parentZonePath: '',
+    lng: '',
+    lat: '',
+    manager: '',
+    managerPhone: '',
+    safetyOfficer: '',
+    safetyOfficerPhone: '',
+    planMap: '',
+    evacuationMap: '',
     remark: ''
   }
   // 加载房间上级区域树
@@ -1460,16 +1531,55 @@ function handleProjectChange(projectId) {
   console.log('选择的项目ID:', projectId)
 }
 
-/** 上级区域选择变化 */
 function handleParentZoneChange(zoneId) {
   if (zoneId) {
     // 获取完整路径
     const fullPath = getFullPath(zoneId)
     roomForm.value.parentZonePath = fullPath
+    
+    // 查找上级区域的详细信息并继承
+    const parentZone = findZoneById(zoneId)
+    if (parentZone) {
+      // 继承上级区域的信息
+      roomForm.value.lng = parentZone.lng || ''
+      roomForm.value.lat = parentZone.lat || ''
+      roomForm.value.manager = parentZone.manager || ''
+      roomForm.value.managerPhone = parentZone.managerPhone || ''
+      roomForm.value.safetyOfficer = parentZone.safetyOfficer || ''
+      roomForm.value.safetyOfficerPhone = parentZone.safetyOfficerPhone || ''
+      roomForm.value.planMap = parentZone.planMap || ''
+      roomForm.value.evacuationMap = parentZone.evacuationMap || ''
+    }
+    
     console.log('选择的上级区域ID:', zoneId, '完整路径:', fullPath)
   } else {
     roomForm.value.parentZonePath = ''
+    // 清空继承的字段
+    roomForm.value.lng = ''
+    roomForm.value.lat = ''
+    roomForm.value.manager = ''
+    roomForm.value.managerPhone = ''
+    roomForm.value.safetyOfficer = ''
+    roomForm.value.safetyOfficerPhone = ''
+    roomForm.value.planMap = ''
+    roomForm.value.evacuationMap = ''
   }
+}
+/** 根据ID查找区域 */
+function findZoneById(zoneId) {
+  const findInTree = (nodes, targetId) => {
+    for (const node of nodes) {
+      if (node.id === targetId) {
+        return node
+      }
+      if (node.children && node.children.length > 0) {
+        const found = findInTree(node.children, targetId)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  return findInTree(zoneTreeData.value, zoneId)
 }
 
 /** 复制路径 */
@@ -1513,23 +1623,36 @@ function submitBuildingForm() {
     }
   })
 }
-
 /** 提交房间表单 */
 function submitRoomForm() {
   roomRef.value.validate(valid => {
     if (valid) {
       // 准备提交数据
       const submitData = {
-        ...roomForm.value,
-        pid: roomForm.value.parentZoneId, // 使用选择的上级区域ID作为父ID
-        zonetype: 4 // 房间类型为三级区域
+        zname: roomForm.value.roomName,
+        pid: roomForm.value.parentZoneId,
+        zonetype: 4, 
+        projectId: roomForm.value.projectId,
+        roomType: roomForm.value.roomType,
+        manager: roomForm.value.manager,
+        managerPhone: roomForm.value.managerPhone,
+        safetyOfficer: roomForm.value.safetyOfficer,
+        safetyOfficerPhone: roomForm.value.safetyOfficerPhone,
+        lng: roomForm.value.lng,
+        lat: roomForm.value.lat,
+        planMap: roomForm.value.planMap,
+        evacuationMap: roomForm.value.evacuationMap,
+        remark: roomForm.value.remark
       }
+      
+      console.log('提交数据:', submitData)
       
       addRoom(submitData).then(response => {
         proxy.$modal.msgSuccess("添加房间成功")
         roomOpen.value = false
         getList()
       }).catch(error => {
+        console.error('添加房间失败:', error)
         proxy.$modal.msgError("添加房间失败: " + error.message)
       })
     }
@@ -2049,6 +2172,7 @@ onMounted(() => {
   background-color: #f8f9fa;
 }
 
+
 .device-info {
   margin-top: 20px;
 }
@@ -2177,5 +2301,22 @@ onMounted(() => {
   .tree-container {
     max-height: 300px;
   }
+}
+/* 继承信息区域样式 */
+:deep(.el-divider__text) {
+  background-color: #fff;
+  padding: 0 10px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.path-tip {
+  font-size: 12px;
+  color: #67c23a;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #f0f9ff;
+  border-radius: 4px;
+  border-left: 3px solid #67c23a;
 }
 </style>

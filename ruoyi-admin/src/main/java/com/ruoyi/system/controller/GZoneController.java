@@ -166,7 +166,7 @@ public class GZoneController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('system:zone:add')")
     @Log(title = "区域管理", businessType = BusinessType.INSERT)
-    @PostMapping("/addClassroom")
+    @PostMapping("/room")
     public AjaxResult addClassroom(@RequestBody AddClassroomDTO Data)
     {
 

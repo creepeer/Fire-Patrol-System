@@ -128,20 +128,21 @@ public class GZoneServiceImpl implements IGZoneService
 
     @Override
     public  int insertGZOneClassroom(AddClassroomDTO Data){
+        System.out.println(Data);
         GZone gZone=new GZone();
         gZone.setZname(Data.getZname());
+        gZone.setZonetype(Data.getZonetype());
         gZone.setRemark(Data.getRemark());
         gZone.setPid(Data.getPid());
         gZone.setLat(Data.getLat());
         gZone.setLng(Data.getLng());
         gZone.setSafetyOfficerPhone(Data.getSafetyOfficerPhone());
-        gZone.setSafetyOfficer(Data.getSafetyOfficerPhone());
+        gZone.setSafetyOfficer(Data.getSafetyOfficer());
         gZone.setManagerPhone(Data.getManagerPhone());
         gZone.setManager(Data.getManager());
         gZone.setIntroduction(Data.getIntroduction());
         gZone.setPlanMap(Data.getPlanMap());
         gZone.setEvacuationMap(Data.getEvacuationMap());
-        gZoneMapper.insertGZone(gZone);
-        return 0;
+        return gZoneMapper.insertGZone(gZone);
     }
 }
