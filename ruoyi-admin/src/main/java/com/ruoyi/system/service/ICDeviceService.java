@@ -1,6 +1,8 @@
 package com.ruoyi.system.service;
 
 import java.util.List;
+
+import com.ruoyi.system.DTO.Device.AddDeviceDTO;
 import com.ruoyi.system.domain.CDevice;
 
 /**
@@ -33,7 +35,7 @@ public interface ICDeviceService
      * @param cDevice 设施设备
      * @return 结果
      */
-    public int insertCDevice(CDevice cDevice);
+    public int insertCDevice(AddDeviceDTO Date);
 
     /**
      * 修改设施设备

@@ -80,7 +80,7 @@
                   <el-option
                     v-for="category in categoryOptions"
                     :key="category.id"
-                    :label="category.name"
+                    :label="category.cname"
                     :value="category.id"
                   />
                 </el-select>
@@ -171,6 +171,7 @@
                       <span class="device-brand">{{ data.brand }}</span>
                       <span class="device-location">{{ data.location }}</span>
                       <span v-if="data.zonePath" class="device-zone">{{ data.zonePath }}</span>
+                      <span v-if="data.relatedlocation" class="device-related-location">{{ data.relatedlocation }}</span>
                     </div>
                   </div>
                   
@@ -207,7 +208,7 @@
     </el-container>
 
     <!-- 添加或修改设施设备对话框 -->
-    <el-dialog :title="title" v-model="open" width="800px" append-to-body>
+    <el-dialog :title="title" v-model="open" width="900px" append-to-body>
       <el-form ref="deviceRef" :model="form" :rules="rules" label-width="120px">
         <el-row>
           <el-col :span="12">
@@ -216,18 +217,20 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="设备类别" prop="categoryId">
+            <el-form-item label="父设备" prop="parentDeviceId">
               <el-select 
-                v-model="form.categoryId" 
-                placeholder="请选择设备类别"
+                v-model="form.parentDeviceId" 
+                placeholder="请选择父设备"
                 style="width: 100%"
                 clearable
+                filterable
               >
+                <el-option label="无父设备（根设备）" :value="null" />
                 <el-option
-                  v-for="category in categoryOptions"
-                  :key="category.id"
-                  :label="category.name"
-                  :value="category.id"
+                  v-for="device in parentDeviceOptions"
+                  :key="device.id"
+                  :label="getParentDeviceLabel(device)"
+                  :value="device.id"
                 />
               </el-select>
             </el-form-item>
@@ -253,20 +256,29 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="父设备" prop="parentDeviceId">
+            <el-form-item label="设备类别" prop="categoryId">
               <el-select 
-                v-model="form.parentDeviceId" 
-                placeholder="请选择父设备"
+                v-model="form.categoryId" 
+                placeholder="请选择设备类别"
                 style="width: 100%"
                 clearable
               >
-                <el-option label="无父设备（根设备）" :value="null" />
                 <el-option
-                  v-for="device in parentDeviceOptions"
-                  :key="device.id"
-                  :label="device.name"
-                  :value="device.id"
-                />
+                  v-for="category in categoryOptions"
+                  :key="category.id"
+                  :label="category.cname"
+                  :value="category.id"
+                >
+                  <div class="category-option">
+                    <span class="category-name">{{ category.cname }}</span>
+                    <el-tag :type="category.ctype === 0 ? 'warning' : 'primary'" size="small" style="margin-left: 8px">
+                      {{ category.ctype === 0 ? '分支' : '结点' }}
+                    </el-tag>
+                    <span v-if="category.subjectId" class="category-subject" style="margin-left: 8px; color: #909399; font-size: 12px">
+                      科目: {{ category.subjectId }}
+                    </span>
+                  </div>
+                </el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -334,9 +346,20 @@
           </el-col>
         </el-row>
 
-        <!-- 总线设备子设备选择 -->
+        <!-- 关联位置信息 -->
+        <el-form-item label="关联位置" prop="relatedlocation">
+          <el-input 
+            v-model="form.relatedlocation" 
+            placeholder="请输入关联位置信息" 
+            type="textarea"
+            :rows="2"
+          />
+          <div class="form-tip">例如：浙江省杭州市钱塘区 / 杭电辅助教学楼 / 一号教学楼 / 一楼 / 01教室</div>
+        </el-form-item>
+
+        <!-- 主机设备子设备选择 -->
         <el-form-item 
-          v-if="form.isBus === 1" 
+          v-if="form.isHost === 1" 
           label="关联子设备" 
           prop="childDeviceIds"
         >
@@ -344,17 +367,50 @@
             <template #header>
               <div class="card-header">
                 <span>选择子设备</span>
-                <el-button 
-                  type="primary" 
-                  link 
-                  @click="refreshChildDevices"
-                  :loading="childDeviceLoading"
-                >
-                  刷新设备列表
-                </el-button>
+                <div class="header-actions">
+                  <el-button 
+                    type="primary" 
+                    link 
+                    @click="refreshChildDevices"
+                    :loading="childDeviceLoading"
+                  >
+                    刷新设备列表
+                  </el-button>
+                  <el-button 
+                    type="info" 
+                    link 
+                    @click="clearSelectedZone"
+                  >
+                    清除区域筛选
+                  </el-button>
+                </div>
               </div>
             </template>
             
+            <!-- 区域选择器 -->
+            <div class="zone-selector-section">
+              <div class="section-title">区域筛选</div>
+              <div class="zone-selector">
+                <el-cascader
+                  v-model="selectedZonePath"
+                  :options="zoneTreeOptions"
+                  :props="zoneCascaderProps"
+                  placeholder="请选择区域进行筛选"
+                  style="width: 100%"
+                  clearable
+                  filterable
+                  @change="handleZoneFilterChange"
+                />
+                <div class="zone-tip">
+                  当前筛选: {{ selectedZoneName || '全部区域' }}
+                  <el-tag v-if="selectedZoneName" type="success" size="small" style="margin-left: 8px">
+                    {{ selectedZoneName }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 设备搜索和统计 -->
             <div class="child-device-filter">
               <el-input
                 v-model="childDeviceFilter"
@@ -366,19 +422,29 @@
               <span class="selected-count">已选择 {{ selectedChildDevices.length }} 个设备</span>
             </div>
             
+            <!-- 设备列表 -->
             <div class="child-device-list">
               <el-table
                 ref="childDeviceTableRef"
                 :data="filteredChildDevices"
                 height="300"
                 @selection-change="handleChildDeviceSelectionChange"
+                v-loading="childDeviceLoading"
               >
                 <el-table-column type="selection" width="55" />
                 <el-table-column prop="name" label="设备名称" min-width="120" />
                 <el-table-column prop="model" label="型号" width="100" />
                 <el-table-column prop="brand" label="品牌" width="80" />
                 <el-table-column prop="location" label="位置" min-width="120" show-overflow-tooltip />
-                <el-table-column prop="categoryName" label="类别" width="80" />
+                <el-table-column prop="zonePath" label="所属区域" min-width="150" show-overflow-tooltip>
+                  <template #default="scope">
+                    <el-tag v-if="scope.row.zonePath" type="info" size="small">
+                      {{ scope.row.zonePath }}
+                    </el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="categoryName" label="设备类别" width="100" />
                 <el-table-column label="状态" width="80">
                   <template #default="scope">
                     <el-tag :type="getDeviceStatusType(scope.row.deviceStatus)" size="small">
@@ -386,7 +452,19 @@
                     </el-tag>
                   </template>
                 </el-table-column>
+                <el-table-column label="是否主机" width="80">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.isHost ? 'success' : 'info'" size="small">
+                      {{ scope.row.isHost ? '是' : '否' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
               </el-table>
+            </div>
+            
+            <!-- 空状态 -->
+            <div v-if="filteredChildDevices.length === 0 && !childDeviceLoading" class="child-device-empty">
+              <el-empty description="暂无可用设备" :image-size="60" />
             </div>
           </el-card>
         </el-form-item>
@@ -494,6 +572,10 @@ const selectedTopRegion = ref(null)
 const currentProject = ref(null)
 const deviceCountMap = ref({})
 
+// 新增：区域筛选相关
+const selectedZonePath = ref([])
+const selectedZoneName = ref('')
+
 // 区域级联选择配置
 const zoneCascaderProps = {
   value: 'id',
@@ -531,7 +613,9 @@ const data = reactive({
     diagram2d: null,
     lng: null,
     lat: null,
-    remark: null
+    remark: null,
+    // 新增关联位置字段
+    relatedlocation: '浙江省杭州市钱塘区 / 杭电辅助教学楼 / 一号教学楼 / 一楼 / 01教室'
   },
   queryParams: {
     pageNum: 1,
@@ -602,8 +686,8 @@ const filteredProjects = computed(() => {
   return findNodeById(zoneTreeData.value, selectedTopRegion.value) || []
 })
 
-// 监听总线设备状态变化
-watch(() => form.value.isBus, (newVal) => {
+// 监听主机设备状态变化
+watch(() => form.value.isHost, (newVal) => {
   if (newVal === 1) {
     loadChildDevices()
   } else {
@@ -637,6 +721,21 @@ function getDeviceStatusType(status) {
 /** 获取项目设备数量 */
 function getDeviceCount(projectId) {
   return deviceCountMap.value[projectId] || 0
+}
+
+/** 获取父设备显示标签 */
+function getParentDeviceLabel(device) {
+  let label = device.name
+  if (device.model) {
+    label += ` (${device.model})`
+  }
+  if (device.zonePath) {
+    label += ` - ${device.zonePath}`
+  }
+  if (device.relatedlocation) {
+    label += ` [${device.relatedlocation}]`
+  }
+  return label
 }
 
 /** 将扁平设备数据转换为树状结构 */
@@ -722,9 +821,18 @@ function loadDeviceCounts() {
 /** 查询类别列表 */
 function getCategoryList() {
   listCategory().then(response => {
-    categoryOptions.value = response.rows || response.data || []
+    // 适配不同的响应结构
+    const categoryData = response.rows || response.data || []
+    categoryOptions.value = categoryData.map(category => ({
+      id: category.id,
+      cname: category.cname,
+      ctype: category.ctype,
+      subjectId: category.subjectId,
+      remark: category.remark
+    }))
   }).catch(error => {
     console.error('加载类别数据失败:', error)
+    ElMessage.error('加载设备类别数据失败')
   })
 }
 
@@ -771,7 +879,7 @@ function getZonePath(zoneId1, zoneId2, zoneId3) {
 function getCategoryName(categoryId) {
   if (!categoryId) return ''
   const category = categoryOptions.value.find(cat => cat.id === categoryId)
-  return category ? category.name : ''
+  return category ? category.cname : ''
 }
 
 /** 根据ID查找区域 */
@@ -793,8 +901,10 @@ function findZoneById(zoneId) {
 
 /** 更新父设备选项 */
 function updateParentDeviceOptions() {
+  // 排除当前编辑的设备本身，避免循环引用
+  const currentDeviceId = form.value.id
   parentDeviceOptions.value = deviceList.value.filter(device => 
-    device.isHost || device.isBus
+    device.id !== currentDeviceId && (device.isHost || device.isBus)
   )
 }
 
@@ -832,6 +942,7 @@ function handleZoneChange(value) {
 function handleHostChange(value) {
   if (value === 1) {
     form.value.isBus = 0
+    loadChildDevices()
   }
 }
 
@@ -839,7 +950,6 @@ function handleHostChange(value) {
 function handleBusChange(value) {
   if (value === 1) {
     form.value.isHost = 0
-    loadChildDevices()
   }
 }
 
@@ -856,10 +966,16 @@ function loadChildDevices() {
   listDevice({
     projectId: projectId,
     pageSize: 1000,
-    isBus: 0
+    isHost: 0 // 只加载非主机设备作为子设备
   }).then(response => {
-    childDeviceOptions.value = response.rows || response.data || []
-    filteredChildDevices.value = childDeviceOptions.value
+    childDeviceOptions.value = (response.rows || response.data || []).map(device => ({
+      ...device,
+      zonePath: getZonePath(device.zoneId1, device.zoneId2, device.zoneId3),
+      categoryName: getCategoryName(device.categoryId)
+    }))
+    
+    // 应用当前区域筛选
+    applyZoneFilter()
     
     if (form.value.id && form.value.childDeviceIds) {
       const selectedIds = form.value.childDeviceIds
@@ -883,6 +999,65 @@ function loadChildDevices() {
   })
 }
 
+/** 区域筛选变化 */
+function handleZoneFilterChange(value) {
+  selectedZonePath.value = value
+  if (value && value.length > 0) {
+    // 获取选中的区域名称
+    const zoneId = value[value.length - 1]
+    const zone = findZoneById(zoneId)
+    selectedZoneName.value = zone ? zone.zname : ''
+  } else {
+    selectedZoneName.value = ''
+  }
+  applyZoneFilter()
+}
+
+/** 应用区域筛选 */
+function applyZoneFilter() {
+  if (!selectedZonePath.value || selectedZonePath.value.length === 0) {
+    filteredChildDevices.value = [...childDeviceOptions.value]
+    return
+  }
+  
+  const targetZoneId = selectedZonePath.value[selectedZonePath.value.length - 1]
+  
+  filteredChildDevices.value = childDeviceOptions.value.filter(device => {
+    // 检查设备是否属于选中的区域或其子区域
+    return isDeviceInZone(device, targetZoneId)
+  })
+  
+  // 同时应用文本搜索筛选
+  if (childDeviceFilter.value) {
+    filterChildDevices()
+  }
+}
+
+/** 检查设备是否在指定区域 */
+function isDeviceInZone(device, zoneId) {
+  // 检查设备的三个区域ID是否匹配
+  if (device.zoneId1 === zoneId || device.zoneId2 === zoneId || device.zoneId3 === zoneId) {
+    return true
+  }
+  
+  // 如果设备有区域路径，检查路径中是否包含该区域
+  if (device.zonePath && device.zonePath.includes(selectedZoneName.value)) {
+    return true
+  }
+  
+  return false
+}
+
+/** 清除区域筛选 */
+function clearSelectedZone() {
+  selectedZonePath.value = []
+  selectedZoneName.value = ''
+  filteredChildDevices.value = [...childDeviceOptions.value]
+  if (childDeviceFilter.value) {
+    filterChildDevices()
+  }
+}
+
 /** 刷新子设备列表 */
 function refreshChildDevices() {
   loadChildDevices()
@@ -897,17 +1072,32 @@ function handleChildDeviceSelectionChange(selection) {
 /** 过滤子设备 */
 function filterChildDevices() {
   if (!childDeviceFilter.value) {
-    filteredChildDevices.value = childDeviceOptions.value
+    // 如果没有搜索文本，只应用区域筛选
+    applyZoneFilter()
     return
   }
   
   const filter = childDeviceFilter.value.toLowerCase()
-  filteredChildDevices.value = childDeviceOptions.value.filter(device => 
-    device.name?.toLowerCase().includes(filter) ||
-    device.model?.toLowerCase().includes(filter) ||
-    device.location?.toLowerCase().includes(filter) ||
-    device.brand?.toLowerCase().includes(filter)
-  )
+  
+  if (selectedZonePath.value && selectedZonePath.value.length > 0) {
+    // 在已区域筛选的基础上进行文本搜索
+    filteredChildDevices.value = filteredChildDevices.value.filter(device => 
+      device.name?.toLowerCase().includes(filter) ||
+      device.model?.toLowerCase().includes(filter) ||
+      device.location?.toLowerCase().includes(filter) ||
+      device.brand?.toLowerCase().includes(filter) ||
+      device.zonePath?.toLowerCase().includes(filter)
+    )
+  } else {
+    // 没有区域筛选时，在所有设备中搜索
+    filteredChildDevices.value = childDeviceOptions.value.filter(device => 
+      device.name?.toLowerCase().includes(filter) ||
+      device.model?.toLowerCase().includes(filter) ||
+      device.location?.toLowerCase().includes(filter) ||
+      device.brand?.toLowerCase().includes(filter) ||
+      device.zonePath?.toLowerCase().includes(filter)
+    )
+  }
 }
 
 // 取消按钮
@@ -945,9 +1135,14 @@ function reset() {
     diagram2d: null,
     lng: null,
     lat: null,
-    remark: null
+    remark: null,
+    // 重置时也包含默认的关联位置
+    relatedlocation: '浙江省杭州市钱塘区 / 杭电辅助教学楼 / 一号教学楼 / 一楼 / 01教室'
   }
   selectedChildDevices.value = []
+  selectedZonePath.value = []
+  selectedZoneName.value = ''
+  childDeviceFilter.value = ''
   proxy.resetForm("deviceRef")
 }
 
@@ -993,13 +1188,15 @@ function handleUpdate(row) {
     form.value = {
       ...deviceData,
       zonePath: deviceData.zoneId1 && deviceData.zoneId2 && deviceData.zoneId3 ? 
-        [deviceData.zoneId1, deviceData.zoneId2, deviceData.zoneId3] : []
+        [deviceData.zoneId1, deviceData.zoneId2, deviceData.zoneId3] : [],
+      // 确保 relatedlocation 有值，如果没有则使用默认值
+      relatedlocation: deviceData.relatedlocation || '浙江省杭州市钱塘区 / 杭电辅助教学楼 / 一号教学楼 / 一楼 / 01教室'
     }
     open.value = true
     title.value = "修改设备"
     updateParentDeviceOptions()
     
-    if (form.value.isBus === 1) {
+    if (form.value.isHost === 1) {
       nextTick(() => {
         loadChildDevices()
       })
@@ -1127,6 +1324,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 样式保持不变，与之前相同 */
 .app-container {
   padding: 20px;
   height: calc(100vh - 84px);
@@ -1404,7 +1602,8 @@ onMounted(() => {
 .device-model,
 .device-brand,
 .device-location,
-.device-zone {
+.device-zone,
+.device-related-location {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1430,6 +1629,15 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 8px;
+}
+
+.device-related-location {
+  color: #e6a23c;
+  background: #fdf6ec;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-style: italic;
 }
 
 .node-actions {
@@ -1500,6 +1708,35 @@ onMounted(() => {
   align-items: center;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 区域选择器样式 */
+.zone-selector-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+}
+
+.section-title {
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.zone-tip {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+}
+
 .child-device-filter {
   display: flex;
   justify-content: space-between;
@@ -1515,6 +1752,29 @@ onMounted(() => {
 .child-device-list {
   border: 1px solid #e4e7ed;
   border-radius: 4px;
+}
+
+.child-device-empty {
+  padding: 40px 20px;
+  text-align: center;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+}
+
+/* 类别选项样式 */
+.category-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.category-name {
+  flex: 1;
+}
+
+.category-subject {
+  font-size: 12px;
 }
 
 /* 响应式布局 */

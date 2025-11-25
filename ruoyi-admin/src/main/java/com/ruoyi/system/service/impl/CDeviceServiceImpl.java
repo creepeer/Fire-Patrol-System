@@ -1,6 +1,8 @@
 package com.ruoyi.system.service.impl;
 
 import java.util.List;
+
+import com.ruoyi.system.DTO.Device.AddDeviceDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.system.mapper.CDeviceMapper;
@@ -55,13 +57,57 @@ public class CDeviceServiceImpl implements ICDeviceService
     /**
      * 新增设施设备
      * 
-     * @param cDevice 设施设备
+     * @param Data 设施设备
      * @return 结果
      */
     @Override
-    public int insertCDevice(CDevice cDevice)
+    public int insertCDevice(AddDeviceDTO Data)
     {
-        return cDeviceMapper.insertCDevice(cDevice);
+        System.out.println(Data);
+        CDevice device=new CDevice();
+        device.setName(Data.getName());
+        device.setCategoryId(Data.getCategoryId());
+        device.setProjectId(Data.getProjectId());
+        device.setZoneId1(Data.getZoneId1());
+        device.setZoneId2(Data.getZoneId2());
+        device.setZoneId3(Data.getZoneId3());
+        device.setLocation(Data.getLocation());
+        device.setRelatedLocation(Data.getRelatedLocation());
+        device.setBrand(Data.getBrand());
+        device.setModel(Data.getModel());
+        device.setIsHost(Data.getIsHost());
+        device.setIsBus(Data.getIsBus());
+        device.setParentDeviceId(Data.getParentDeviceId());
+        device.setStartDate(Data.getStartDate());
+        device.setProductionDate(Data.getProductionDate());
+        device.setWarrantyStart(Data.getWarrantyStart());
+        device.setServiceLife(Data.getServiceLife());
+        device.setDeviceStatus(Data.getDeviceStatus());
+        device.setBindStatus(Data.getBindStatus());
+        device.setQrCode(Data.getQrCode());
+        device.setQrUrl(Data.getQrUrl());
+        device.setDiagram2d(Data.getDiagram2d());
+        device.setLat(Data.getLat());
+        device.setLng(Data.getLng());
+        device.setRemark(Data.getRemark());
+
+        int result = cDeviceMapper.insertCDevice(device);
+
+        // 3. 如果插入成功且是主机设备且有子设备，更新子设备的父设备ID
+        if (result > 0 && Data.getIsHost() == 1 &&
+                Data.getChildDeviceIds() != null && !Data.getChildDeviceIds().isEmpty()) {
+            associateChildDevices(device.getId(), Data.getChildDeviceIds());
+        }
+       return result;
+    }
+    private void associateChildDevices(Long hostId, List<Long> childIds) {
+        for (Long childId : childIds) {
+            CDevice child = cDeviceMapper.selectCDeviceById(childId);
+            if (child != null && child.getIsHost() != 1) {
+                child.setParentDeviceId(hostId);
+                cDeviceMapper.updateCDevice(child);
+            }
+        }
     }
 
     /**

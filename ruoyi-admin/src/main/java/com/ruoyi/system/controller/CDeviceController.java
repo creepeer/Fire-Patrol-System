@@ -2,6 +2,8 @@ package com.ruoyi.system.controller;
 
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
+
+import com.ruoyi.system.DTO.Device.AddDeviceDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -73,9 +75,9 @@ public class CDeviceController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:device:add')")
     @Log(title = "设施设备", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody CDevice cDevice)
+    public AjaxResult add(@RequestBody AddDeviceDTO Data)
     {
-        return toAjax(cDeviceService.insertCDevice(cDevice));
+        return toAjax(cDeviceService.insertCDevice(Data));
     }
 
     /**

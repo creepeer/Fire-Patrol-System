@@ -140,9 +140,3 @@ export function getDataByLevel(levelType, parentId) {
   })
 }
 
-export function listDeviceByZoneId(zoneId) {
-  return request({
-    url: '/system/zone/listByZoneId/' + zoneId,
-    method: 'get'
-  })
-}
