@@ -76,6 +76,7 @@ public class DContentlibNodeServiceImpl implements IDContentlibNodeService
     @Override
     public int deleteDContentlibNodeByIds(Long[] ids)
     {
+
         return dContentlibNodeMapper.deleteDContentlibNodeByIds(ids);
     }
 

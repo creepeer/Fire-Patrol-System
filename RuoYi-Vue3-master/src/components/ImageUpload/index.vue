@@ -173,7 +173,10 @@ function handleExceed() {
 // 上传成功回调
 function handleUploadSuccess(res, file) {
   if (res.code === 200) {
-    uploadList.value.push({ name: res.fileName, url: res.fileName })
+    const rawUrl = res.url || res.fileName
+    const url = rawUrl ? String(rawUrl).replace(/`/g, "").trim() : ""
+    const name = res.originalFilename || res.newFileName || url
+    uploadList.value.push({ name, url })
     uploadedSuccessfully()
   } else {
     number.value--

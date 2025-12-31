@@ -122,15 +122,98 @@
         </div>
 
         <div class="detail-content">
-          <div v-if="currentNode" class="detail-bar">
-            <span class="detail-field detail-name">{{ currentNode.name }}</span>
-            <span class="detail-field">
-              项目ID：{{ currentNode.projectId || '暂无项目' }}
-            </span>
-            <span class="detail-field">
-              备注：{{ currentNode.remark || '暂无备注' }}
-            </span>
-          </div>
+          <template v-if="currentNode">
+            <div class="detail-bar">
+              <span class="detail-field detail-name">{{ currentNode.name }}</span>
+              <span class="detail-field">
+                项目ID：{{ currentNode.projectId || '暂无项目' }}
+              </span>
+              <span class="detail-field">
+                备注：{{ currentNode.remark || '暂无备注' }}
+              </span>
+            </div>
+            <div class="content-header">
+              <el-button type="primary" icon="Plus" @click="handleAddContent">
+                添加文档
+              </el-button>
+            </div>
+            <el-table
+              v-loading="contentLoading"
+              :data="contentList"
+              border
+              size="small"
+              class="content-table"
+            >
+              <el-table-column
+                type="index"
+                label="序号"
+                width="60"
+                align="center"
+              />
+              <el-table-column
+                label="文档名称"
+                prop="name"
+                min-width="160"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                label="模块类型"
+                min-width="120"
+                show-overflow-tooltip
+              >
+                <template #default="scope">
+                  {{ getModuleTypeLabel(scope.row.status) }}
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="备注"
+                prop="remark"
+                min-width="200"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                label="文件"
+                min-width="180"
+                show-overflow-tooltip
+              >
+                <template #default="scope">
+                  <el-link
+                    v-if="scope.row.location"
+                    :href="getFullLocation(scope.row.location)"
+                    target="_blank"
+                    type="primary"
+                  >
+                    {{ getFileNameFromPath(scope.row.location) }}
+                  </el-link>
+                  <span v-else>暂无</span>
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="操作"
+                width="160"
+                align="center"
+              >
+                <template #default="scope">
+                  <el-button
+                    link
+                    type="primary"
+                    icon="Download"
+                    @click="handleDownloadContent(scope.row)"
+                  >
+                    下载
+                  </el-button>
+                  <el-button
+                    link
+                    type="danger"
+                    icon="Delete"
+                    @click="handleDeleteContent(scope.row)"
+                  >
+                    删除
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </template>
           <div v-else class="empty-state">
             <div class="empty-content">
               <p>请选择左侧的节点进行查看或在右上角新增节点</p>
@@ -169,10 +252,43 @@
         </div>
       </template>
     </el-dialog>
+    <el-dialog title="添加文档" v-model="contentDialogOpen" width="600px" append-to-body>
+      <el-form ref="contentFormRef" :model="contentForm" label-width="90px">
+        <el-form-item label="文档名称" prop="name">
+          <el-input v-model="contentForm.name" placeholder="请输入文档名称" />
+        </el-form-item>
+        <el-form-item label="模块类型" prop="status">
+          <el-select v-model="contentForm.status" placeholder="请选择模块类型">
+            <el-option label="通用" :value=1 />
+            <el-option label="检测" :value=2 />
+            <el-option label="验收" :value=3 />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="contentForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+        </el-form-item>
+        <el-form-item label="文件" prop="location">
+          <file-upload
+            v-model="contentForm.location"
+            :limit="1"
+            :file-size="20"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="contentDialogOpen = false">取 消</el-button>
+          <el-button type="primary" :loading="contentSaving" @click="handleSaveContent">
+            保 存
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="KnowledgeNode">
+import request from "@/utils/request"
 import { listKnowledgeNode, getKnowledgeNode, delKnowledgeNode, addKnowledgeNode, updateKnowledgeNode } from "@/api/system/knowledgeNode"
 import { listZone } from "@/api/system/zone"
 
@@ -189,6 +305,12 @@ const showSearch = ref(true)
 const title = ref("")
 const isExpandAll = ref(true)
 const refreshTable = ref(true)
+const contentList = ref([])
+const contentLoading = ref(false)
+const contentSaving = ref(false)
+const contentDialogOpen = ref(false)
+const contentFormRef = ref(null)
+const baseUrl = import.meta.env.VITE_APP_BASE_API
 
 const data = reactive({
   form: {},
@@ -196,6 +318,14 @@ const data = reactive({
     pid: null,
     projectId: null,
     name: null
+  },
+  contentForm: {
+    id: null,
+    pid: null,
+    name: "",
+    status: null,
+    remark: "",
+    location: ""
   },
   rules: {
     pid: [
@@ -207,7 +337,7 @@ const data = reactive({
   }
 })
 
-const { queryParams, form, rules } = toRefs(data)
+const { queryParams, form, contentForm, rules } = toRefs(data)
 
 /** 查询知识库节点列表 */
 function getList() {
@@ -216,6 +346,37 @@ function getList() {
     knowledgeNodeList.value = proxy.handleTree(response.data, "id", "pid")
     loading.value = false
   })
+}
+
+function getContentList() {
+  if (!currentNode.value) {
+    contentList.value = []
+    return
+  }
+  contentLoading.value = true
+  request({
+    url: "/system/contentlib/list",
+    method: "get",
+    params: {
+      pid: currentNode.value.id
+    }
+  }).then(response => {
+    const list = response.rows || response.data || []
+    contentList.value = list
+  }).finally(() => {
+    contentLoading.value = false
+  })
+}
+
+function resetContentForm() {
+  contentForm.value = {
+    id: null,
+    pid: null,
+    name: "",
+    status: null,
+    remark: "",
+    location: ""
+  }
 }
 
 /** 查询根区域列表（公司信息） */
@@ -249,7 +410,7 @@ function getTreeselect() {
     knowledgeNodeOptions.value.push(data)
   })
 }
-	
+
 // 取消按钮
 function cancel() {
   open.value = false
@@ -300,6 +461,8 @@ function handleAdd(row) {
 
 function handleNodeClick(data) {
   currentNode.value = data
+  resetContentForm()
+  getContentList()
 }
 
 /** 根节点选择变化，根据根节点ID筛选知识节点的 projectId */
@@ -365,6 +528,111 @@ function handleDelete(row) {
 onMounted(() => {
   getZoneRootList()
 })
+
+function getFileNameFromPath(path) {
+  if (!path) {
+    return ""
+  }
+  const parts = path.split("/")
+  return parts[parts.length - 1] || ""
+}
+
+function getModuleTypeLabel(val) {
+  const v = String(val ?? "")
+  if (v === "1") return "通用"
+  if (v === "2") return "检测"
+  if (v === "3") return "验收"
+  return ""
+}
+
+function getFullLocation(path) {
+  if (!path) {
+    return ""
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path
+  }
+  return baseUrl + path
+}
+
+function handleSaveContent() {
+  if (!currentNode.value) {
+    proxy.$modal.msgError("请先选择左侧的节点")
+    return
+  }
+  if (!contentForm.value.location) {
+    proxy.$modal.msgError("请先上传文件或图片")
+    return
+  }
+  const locations = contentForm.value.location.split(",").filter(Boolean)
+  const location = locations[0] || ""
+  if (!location) {
+    proxy.$modal.msgError("上传结果异常，请重新上传")
+    return
+  }
+  const payload = {
+    id: contentForm.value.id,
+    pid: currentNode.value.id,
+    name: contentForm.value.name || getFileNameFromPath(location),
+    status: contentForm.value.status,
+    remark: contentForm.value.remark,
+    location,
+  }
+  contentSaving.value = true
+  request({
+    url: "/system/contentlib",
+    method: payload.id ? "put" : "post",
+    data: payload
+  }).then(() => {
+    proxy.$modal.msgSuccess("已保存到知识库")
+    resetContentForm()
+    getContentList()
+  }).finally(() => {
+    contentSaving.value = false
+  })
+}
+
+function handleDeleteContent(row) {
+  if (!row || !row.id) {
+    return
+  }
+  proxy.$modal.confirm('是否确认删除该文件？').then(() => {
+    const fileName = getFileNameFromPath(row.location || "")
+    if (!fileName) {
+      return request({
+        url: "/system/contentlib/" + row.id,
+        method: "delete"
+      })
+    }
+    return request({
+      url: "/common/delete",
+      method: "post",
+      params: { fileName }
+    }).then(() => {
+      return request({
+        url: "/system/contentlib/" + row.id,
+        method: "delete"
+      })
+    })
+  }).then(() => {
+    proxy.$modal.msgSuccess("删除成功")
+    getContentList()
+  }).catch(() => {})
+}
+
+function handleAddContent() {
+  resetContentForm()
+  contentForm.value.pid = currentNode.value ? currentNode.value.id : null
+  contentDialogOpen.value = true
+}
+
+function handleDownloadContent(row) {
+  if (!row || !row.location) {
+    return
+  }
+  const url = getFullLocation(row.location)
+  window.open(url, "_blank")
+}
 </script>
 
 <style scoped>
@@ -572,6 +840,31 @@ onMounted(() => {
 
 .detail-name {
   font-weight: 600;
+}
+
+.content-header {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.content-section {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-upload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.content-name-input {
+  max-width: 260px;
+}
+
+.content-table {
+  margin-top: 16px;
 }
 
 @media (max-width: 1200px) {

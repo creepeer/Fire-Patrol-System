@@ -29,7 +29,7 @@
     <!-- 文件列表 -->
     <transition-group ref="uploadFileList" class="upload-file-list el-upload-list el-upload-list--text" name="el-fade-in-linear" tag="ul">
       <li :key="file.uid" class="el-upload-list__item ele-upload-list__item-content" v-for="(file, index) in fileList">
-        <el-link :href="`${baseUrl}${file.url}`" :underline="false" target="_blank">
+        <el-link :href="getFullUrl(file.url)" :underline="false" target="_blank">
           <span class="el-icon-document"> {{ getFileName(file.name) }} </span>
         </el-link>
         <div class="ele-upload-list__item-content-action">
@@ -162,7 +162,10 @@ function handleUploadError(err) {
 // 上传成功回调
 function handleUploadSuccess(res, file) {
   if (res.code === 200) {
-    uploadList.value.push({ name: res.fileName, url: res.fileName })
+    const rawUrl = res.url || res.fileName || ""
+    const cleanUrl = (rawUrl || "").replace(/`/g, "").trim()
+    const name = res.originalFilename || getFileName(cleanUrl || res.fileName || file.name)
+    uploadList.value.push({ name, url: cleanUrl })
     uploadedSuccessfully()
   } else {
     number.value--
@@ -198,6 +201,16 @@ function getFileName(name) {
   } else {
     return name
   }
+}
+
+function getFullUrl(path) {
+  if (!path) {
+    return ""
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path
+  }
+  return baseUrl + path
 }
 
 // 对象转成指定字符串分隔

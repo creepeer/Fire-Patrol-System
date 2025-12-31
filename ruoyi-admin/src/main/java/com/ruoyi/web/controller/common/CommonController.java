@@ -2,16 +2,16 @@ package com.ruoyi.web.controller.common;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.ruoyi.common.utils.AliyunOSSOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.core.domain.AjaxResult;
@@ -33,6 +33,9 @@ public class CommonController
 
     @Autowired
     private ServerConfig serverConfig;
+
+    @Autowired
+    private AliyunOSSOperator aliyunOSSOperator;
 
     private static final String FILE_DELIMETER = ",";
 
@@ -77,20 +80,49 @@ public class CommonController
         try
         {
             // 上传文件路径
-            String filePath = RuoYiConfig.getUploadPath();
+
             // 上传并返回新文件名称
-            String fileName = FileUploadUtils.upload(filePath, file);
-            String url = serverConfig.getUrl() + fileName;
             AjaxResult ajax = AjaxResult.success();
-            ajax.put("url", url);
-            ajax.put("fileName", fileName);
-            ajax.put("newFileName", FileUtils.getName(fileName));
+            String originalFilename = file.getOriginalFilename();
+            String  extension=originalFilename.substring(originalFilename.lastIndexOf("."));
+            String objectName= UUID.randomUUID().toString()+extension;
+            log.info("开始上传文件");
+            String fileUrl =aliyunOSSOperator.upload(file.getBytes(),objectName);
+            ajax.put("url", fileUrl);
+            ajax.put("fileName", file.getName());
+            ajax.put("newFileName", objectName);
             ajax.put("originalFilename", file.getOriginalFilename());
             return ajax;
         }
         catch (Exception e)
         {
             return AjaxResult.error(e.getMessage());
+        }
+    }
+    @PostMapping("/delete")
+    public AjaxResult deleteFile(@RequestParam String fileName) {
+        try {
+            // 验证文件名是否合法，防止路径遍历攻击
+            if (fileName == null || fileName.trim().isEmpty()) {
+                return AjaxResult.error("文件名不能为空");
+            }
+
+            // 这里假设 fileName 是你上传时生成的 objectName（UUID + 扩展名）
+            // 如果你存储的是完整URL，可能需要从中提取 objectName
+            // 例如：从 "https://bucket.oss-cn-hangzhou.aliyuncs.com/abc123.jpg" 提取 "abc123.jpg"
+
+            boolean success = aliyunOSSOperator.delete(fileName);
+
+            if (success) {
+                log.info("文件删除成功: {}", fileName);
+                return AjaxResult.success("文件删除成功");
+            } else {
+                log.warn("文件删除失败: {}", fileName);
+                return AjaxResult.error("文件删除失败");
+            }
+        } catch (Exception e) {
+            log.error("删除文件异常: {}", fileName, e);
+            return AjaxResult.error("删除文件失败: " + e.getMessage());
         }
     }
 
