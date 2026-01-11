@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.DInspectionItemMapper">
+    
+    <resultMap type="DInspectionItem" id="DInspectionItemResult">
+        <result property="id"    column="id"    />
+        <result property="pid"    column="pid"    />
+        <result property="subjectId"    column="subject_id"    />
+        <result property="subject"    column="subject"    />
+        <result property="name"    column="name"    />
+        <result property="profileId"    column="profile_id"    />
+        <result property="requirements"    column="requirements"    />
+        <result property="method"    column="method"    />
+        <result property="remark"    column="remark"    />
+        <result property="deleted"    column="deleted"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectDInspectionItemVo">
+        select id, pid, subject_id, subject, name, profile_id, requirements, method, remark, deleted, creator, creator_time, modifier, modifier_time from d_inspection_item
+    </sql>
+
+    <select id="selectDInspectionItemList" parameterType="DInspectionItem" resultMap="DInspectionItemResult">
+        <include refid="selectDInspectionItemVo"/>
+        <where>  
+            <if test="pid != null "> and pid = #{pid}</if>
+            <if test="subjectId != null "> and subject_id = #{subjectId}</if>
+            <if test="subject != null  and subject != ''"> and subject = #{subject}</if>
+            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="profileId != null "> and profile_id = #{profileId}</if>
+            <if test="requirements != null  and requirements != ''"> and requirements = #{requirements}</if>
+            <if test="method != null  and method != ''"> and method = #{method}</if>
+            <if test="deleted != null "> and deleted = #{deleted}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectDInspectionItemById" parameterType="Long" resultMap="DInspectionItemResult">
+        <include refid="selectDInspectionItemVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertDInspectionItem" parameterType="DInspectionItem" useGeneratedKeys="true" keyProperty="id">
+        insert into d_inspection_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="pid != null">pid,</if>
+            <if test="subjectId != null">subject_id,</if>
+            <if test="subject != null">subject,</if>
+            <if test="name != null">name,</if>
+            <if test="profileId != null">profile_id,</if>
+            <if test="requirements != null">requirements,</if>
+            <if test="method != null">method,</if>
+            <if test="remark != null">remark,</if>
+            <if test="deleted != null">deleted,</if>
+            <if test="creator != null and creator != ''">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null and modifier != ''">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="pid != null">#{pid},</if>
+            <if test="subjectId != null">#{subjectId},</if>
+            <if test="subject != null">#{subject},</if>
+            <if test="name != null">#{name},</if>
+            <if test="profileId != null">#{profileId},</if>
+            <if test="requirements != null">#{requirements},</if>
+            <if test="method != null">#{method},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="deleted != null">#{deleted},</if>
+            <if test="creator != null and creator != ''">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateDInspectionItem" parameterType="DInspectionItem">
+        update d_inspection_item
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="pid != null">pid = #{pid},</if>
+            <if test="subjectId != null">subject_id = #{subjectId},</if>
+            <if test="subject != null">subject = #{subject},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="profileId != null">profile_id = #{profileId},</if>
+            <if test="requirements != null">requirements = #{requirements},</if>
+            <if test="method != null">method = #{method},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteDInspectionItemById" parameterType="Long">
+        delete from d_inspection_item where id = #{id}
+    </delete>
+
+    <delete id="deleteDInspectionItemByIds" parameterType="String">
+        delete from d_inspection_item where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

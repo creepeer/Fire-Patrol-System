@@ -135,26 +135,27 @@ public class AliyunOSSOperator {
         }
 
         OSS ossClient = null;
+
         try {
             ossClient = createOssClient();
-
-            // 如果传入的是完整URL，提取objectName
-            if (objectName.startsWith("http")) {
-                objectName = extractObjectNameFromUrl(objectName);
-                log.info("提取后的objectName: {}", objectName);
-            }
-
-            // 删除文件
             ossClient.deleteObject(bucketName, objectName);
-            log.info("文件删除成功: {}", objectName);
-            return true;
-        } catch (Exception e) {
-            log.error("删除OSS文件失败: {}", objectName, e);
-            return false;
+        } catch (OSSException oe) {
+            System.out.println("Caught an OSSException, which means your request made it to OSS, "
+                    + "but was rejected with an error response for some reason.");
+            System.out.println("Error Message:" + oe.getErrorMessage());
+            System.out.println("Error Code:" + oe.getErrorCode());
+            System.out.println("Request ID:" + oe.getRequestId());
+            System.out.println("Host ID:" + oe.getHostId());
+        } catch (ClientException ce) {
+            System.out.println("Caught an ClientException, which means the client encountered "
+                    + "a serious internal problem while trying to communicate with OSS, "
+                    + "such as not being able to access the network.");
+            System.out.println("Error Message:" + ce.getMessage());
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();
             }
         }
+        return true;
     }
 }
