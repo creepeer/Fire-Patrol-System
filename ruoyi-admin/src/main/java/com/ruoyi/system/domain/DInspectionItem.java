@@ -28,7 +28,7 @@ public class DInspectionItem extends TreeEntity
     @Excel(name = "科目Id")
     private Long subjectId;
     @Excel(name = "文件id")
-    private Long profileId;
+    private String profileId;
     /** 所属科目名称 */
     @Excel(name = "所属科目名称")
     private String subject;
@@ -185,6 +185,14 @@ public class DInspectionItem extends TreeEntity
     public Date getModifierTime() 
     {
         return modifierTime;
+    }
+
+    public String getProfileId() {
+        return profileId;
+    }
+
+    public void setProfileId(String profileId) {
+        this.profileId = profileId;
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.aliyun.oss.*;
 import com.aliyun.oss.common.auth.DefaultCredentialProvider;
 import com.aliyun.oss.common.comm.SignVersion;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
@@ -27,6 +28,7 @@ public class AliyunOSSOperator {
     private String accessKeyId;
     @Value("${aliyun.oss.access-key-secret}")
     private String accessKeySecret;
+
 
     /**
      * 创建OSS客户端（复用代码）
@@ -129,6 +131,7 @@ public class AliyunOSSOperator {
      * @return 是否删除成功
      */
     public boolean delete(String objectName) {
+        log.info("objectName:{}",objectName);
         if (objectName == null || objectName.trim().isEmpty()) {
             log.error("删除文件失败：objectName为空");
             return false;

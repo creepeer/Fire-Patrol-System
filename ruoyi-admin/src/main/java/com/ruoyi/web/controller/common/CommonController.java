@@ -36,7 +36,6 @@ public class CommonController
 
     @Autowired
     private AliyunOSSOperator aliyunOSSOperator;
-
     private static final String FILE_DELIMETER = ",";
 
     /**
@@ -109,7 +108,7 @@ public class CommonController
 
             // 这里假设 fileName 是你上传时生成的 objectName（UUID + 扩展名）
             // 如果你存储的是完整URL，可能需要从中提取 objectName
-            // 例如：从 "https://bucket.oss-cn-hangzhou.aliyuncs.com/abc123.jpg" 提取 "abc123.jpg"
+            // 例如：从 "https://bucket.oss-cn-hangzhou.aliyuncs.com/01/12/abc123.jpg" 提取 "01/12abc123.jpg"
 
             boolean success = aliyunOSSOperator.delete(fileName);
 

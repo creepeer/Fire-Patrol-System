@@ -140,8 +140,8 @@
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="addSubjectDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitAddSubject">确定</el-button>
+          <el-button @click="handleCancelAddItem">取消</el-button>
+          <el-button type="primary" @click="submitAddItem">确定</el-button>
         </template>
       </el-dialog>
 
@@ -193,7 +193,7 @@
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="addItemDialogVisible = false">取消</el-button>
+          <el-button @click="handleCancelAddItem">取消</el-button>
           <el-button type="primary" @click="submitAddItem">确定</el-button>
         </template>
       </el-dialog>
@@ -203,6 +203,8 @@
 
 <script setup name="InspectionItem">
 import { listInspectionItem, addInspectionItem, updateInspectionItem, delInspectionItem } from "@/api/system/inspectionItem"
+import request from "@/utils/request"
+import { onBeforeRouteLeave } from "vue-router"
 
 const { proxy } = getCurrentInstance()
 
@@ -227,6 +229,7 @@ const addItemForm = reactive({
   method: ""
 })
 const addItemTreeOptions = ref([])
+const originalAttachmentKeys = ref([])
 
 const treeProps = {
   children: "children",
@@ -290,6 +293,11 @@ function getList() {
   loading.value = true
   listInspectionItem().then(response => {
     let list = response.data || response.rows || []
+    list = list.map(item => ({
+      ...item,
+      requirements: decodeContent(item.requirements),
+      method: decodeContent(item.method)
+    }))
     list = markSubjects(list)
     allItems.value = list
     fullTreeData.value = buildFullTree(list)
@@ -305,6 +313,11 @@ function getList() {
     } else {
       currentItem.value = {}
     }
+    if (currentItem.value && currentItem.value.id) {
+      originalAttachmentKeys.value = getAttachmentKeysFromContent(currentItem.value.requirements, currentItem.value.method)
+    } else {
+      originalAttachmentKeys.value = []
+    }
   }).finally(() => {
     loading.value = false
   })
@@ -318,6 +331,10 @@ function handleNodeClick(node) {
   const item = allItems.value.find(i => i.id === node.id)
   if (item) {
     currentItem.value = { ...item }
+    originalAttachmentKeys.value = getAttachmentKeysFromContent(currentItem.value.requirements, currentItem.value.method)
+  } else {
+    currentItem.value = {}
+    originalAttachmentKeys.value = []
   }
 }
 
@@ -326,9 +343,21 @@ function handleSave() {
     proxy.$modal.msgError("请先选择需要保存的检测项")
     return
   }
+  const beforeKeys = originalAttachmentKeys.value || []
+  const afterKeys = getAttachmentKeysFromContent(currentItem.value.requirements, currentItem.value.method)
+  const afterSet = new Set(afterKeys)
+  const removedKeys = beforeKeys.filter(k => !afterSet.has(k))
   saving.value = true
-  updateInspectionItem(currentItem.value).then(() => {
+  const payload = { ...currentItem.value }
+  delete payload.profileId
+  payload.requirements = encodeContent(payload.requirements)
+  payload.method = encodeContent(payload.method)
+  updateInspectionItem(payload).then(() => {
     proxy.$modal.msgSuccess("保存成功")
+    originalAttachmentKeys.value = afterKeys
+    if (removedKeys.length) {
+      deleteOssFilesByKeys(removedKeys)
+    }
     getList()
   }).finally(() => {
     saving.value = false
@@ -396,6 +425,27 @@ function handleAddItemSubjectChange() {
   refreshAddItemTreeOptions()
 }
 
+function resetAddItemForm() {
+  addItemForm.subjectId = null
+  addItemForm.parentId = null
+  addItemForm.name = ""
+  addItemForm.requirements = ""
+  addItemForm.method = ""
+}
+
+function handleCancelAddItem() {
+  const keys = getUnsavedAttachmentKeysForAddItem()
+  if (!keys.length) {
+    addItemDialogVisible.value = false
+    resetAddItemForm()
+    return
+  }
+  deleteOssFilesByKeys(keys).finally(() => {
+    addItemDialogVisible.value = false
+    resetAddItemForm()
+  })
+}
+
 function submitAddItem() {
   if (!addItemForm.subjectId) {
     proxy.$modal.msgError("请选择所属科目")
@@ -409,8 +459,8 @@ function submitAddItem() {
   addInspectionItem({
     name: addItemForm.name,
     pid,
-    requirements: addItemForm.requirements,
-    method: addItemForm.method
+    requirements: encodeContent(addItemForm.requirements),
+    method: encodeContent(addItemForm.method)
   }).then(() => {
     proxy.$modal.msgSuccess("新增检测项成功")
     addItemDialogVisible.value = false
@@ -418,8 +468,154 @@ function submitAddItem() {
   })
 }
 
+function extractAttachmentUrls(html) {
+  if (!html) {
+    return []
+  }
+  const result = []
+  const imgRegex = /<img [^>]*src="([^"]+)"[^>]*>/gi
+  const linkRegex = /<a [^>]*href="([^"]+)"[^>]*>/gi
+  let match
+  while ((match = imgRegex.exec(html)) !== null) {
+    if (match[1]) {
+      result.push(match[1])
+    }
+  }
+  while ((match = linkRegex.exec(html)) !== null) {
+    if (match[1]) {
+      result.push(match[1])
+    }
+  }
+  return result
+}
+
+function collectAttachmentUrls(requirements, method) {
+  const urls = []
+  const seen = new Set()
+  const list = []
+  list.push(...extractAttachmentUrls(requirements))
+  list.push(...extractAttachmentUrls(method))
+  for (const url of list) {
+    if (!url) {
+      continue
+    }
+    if (seen.has(url)) {
+      continue
+    }
+    seen.add(url)
+    urls.push(url)
+  }
+  return urls
+}
+
+function resolveOssKeyFromLocation(input) {
+  let path = (input || "").trim()
+  if (!path) {
+    return ""
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    try {
+      const url = new URL(path)
+      path = url.pathname || ""
+    } catch (e) {
+    }
+  }
+  if (path.startsWith("/")) {
+    path = path.substring(1)
+  }
+  return path
+}
+
+function getAttachmentKeysFromContent(requirements, method) {
+  const urls = collectAttachmentUrls(requirements, method)
+  const keys = []
+  for (const url of urls) {
+    const key = resolveOssKeyFromLocation(url)
+    if (key) {
+      keys.push(key)
+    }
+  }
+  return keys
+}
+
+function deleteOssFilesByKeys(keys) {
+  if (!keys || !keys.length) {
+    return Promise.resolve()
+  }
+  const tasks = keys.map(fileName => {
+    return request({
+      url: "/common/delete",
+      method: "post",
+      params: { fileName }
+    }).catch(() => null)
+  })
+  return Promise.all(tasks).then(() => {})
+}
+
+function getUnsavedNewAttachmentKeysForCurrentItem() {
+  if (!currentItem.value || !currentItem.value.id) {
+    return []
+  }
+  const beforeKeys = originalAttachmentKeys.value || []
+  const afterKeys = getAttachmentKeysFromContent(currentItem.value.requirements, currentItem.value.method)
+  const beforeSet = new Set(beforeKeys)
+  const result = []
+  for (const key of afterKeys) {
+    if (!beforeSet.has(key)) {
+      result.push(key)
+    }
+  }
+  return result
+}
+
+function getUnsavedAttachmentKeysForAddItem() {
+  if (!addItemDialogVisible.value) {
+    return []
+  }
+  return getAttachmentKeysFromContent(addItemForm.requirements, addItemForm.method)
+}
+
+function encodeContent(html) {
+  if (!html) {
+    return html
+  }
+  try {
+    return encodeURIComponent(html)
+  } catch (e) {
+    return html
+  }
+}
+
+function decodeContent(html) {
+  if (!html) {
+    return html
+  }
+  try {
+    return decodeURIComponent(html)
+  } catch (e) {
+    return html
+  }
+}
+
 onMounted(() => {
   getList()
+})
+
+onBeforeRouteLeave((to, from, next) => {
+  const keys1 = getUnsavedNewAttachmentKeysForCurrentItem()
+  const keys2 = getUnsavedAttachmentKeysForAddItem()
+  const allKeys = [...keys1, ...keys2]
+  if (!allKeys.length) {
+    next()
+    return
+  }
+  proxy.$modal.confirm("检测项中有未保存的附件，离开将删除这些附件，是否继续？").then(() => {
+    deleteOssFilesByKeys(allKeys).finally(() => {
+      next()
+    })
+  }).catch(() => {
+    next(false)
+  })
 })
 </script>
 

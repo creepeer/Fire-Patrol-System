@@ -1,6 +1,7 @@
 <template>
   <div>
     <el-upload
+      multiple
       :action="uploadUrl"
       :before-upload="handleBeforeUpload"
       :on-success="handleUploadSuccess"
@@ -129,16 +130,19 @@ onMounted(() => {
   }
 })
 
-// 上传前校检格式和大小
-function handleBeforeUpload(file) {
-  const type = ["image/jpeg", "image/jpg", "image/png", "image/svg"]
-  const isJPG = type.includes(file.type)
-  //检验文件格式
-  if (!isJPG) {
-    proxy.$modal.msgError(`图片格式错误!`)
-    return false
+function isImageFile(file) {
+  if (!file) return false
+  if (file.type && file.type.startsWith("image/")) {
+    return true
   }
-  // 校检文件大小
+  if (file.name) {
+    return /\.(png|jpe?g|gif|bmp|svg)$/i.test(file.name)
+  }
+  return false
+}
+
+// 上传前校检大小（允许图片和普通文件）
+function handleBeforeUpload(file) {
   if (props.fileSize) {
     const isLt = file.size / 1024 / 1024 < props.fileSize
     if (!isLt) {
@@ -156,11 +160,23 @@ function handleUploadSuccess(res, file) {
     // 获取富文本实例
     let quill = toRaw(quillEditorRef.value).getQuill()
     // 获取光标位置
-    let length = quill.selection.savedRange.index
-    // 插入图片，res.url为服务器返回的图片链接地址
-    quill.insertEmbed(length, "image", import.meta.env.VITE_APP_BASE_API + res.fileName)
-    // 调整光标到最后
-    quill.setSelection(length + 1)
+    let length = quill.selection && quill.selection.savedRange
+      ? quill.selection.savedRange.index
+      : quill.getLength()
+    const rawUrl = res.url || res.fileName || ""
+    const base = import.meta.env.VITE_APP_BASE_API
+    const url = rawUrl && (rawUrl.startsWith("http://") || rawUrl.startsWith("https://"))
+      ? rawUrl
+      : base + rawUrl
+    const fileName = (file && file.name) || res.originalFilename || "附件"
+    if (file && isImageFile(file)) {
+      quill.insertEmbed(length, "image", url)
+      quill.setSelection(length + 1)
+    } else {
+      quill.insertText(length, fileName, "link", url)
+      quill.insertText(length + fileName.length, " ")
+      quill.setSelection(length + fileName.length + 1)
+    }
   } else {
     proxy.$modal.msgError("图片插入失败")
   }
@@ -190,7 +206,7 @@ function insertImage(file) {
   const formData = new FormData()
   formData.append("file", file)
   axios.post(uploadUrl.value, formData, { headers: { "Content-Type": "multipart/form-data", Authorization: headers.value.Authorization } }).then(res => {
-    handleUploadSuccess(res.data)
+    handleUploadSuccess(res.data, file)
   })
 }
 </script>

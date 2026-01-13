@@ -277,7 +277,7 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="contentDialogOpen = false">取 消</el-button>
+          <el-button @click="handleCancelContent">取 消</el-button>
           <el-button type="primary" :loading="contentSaving" @click="handleSaveContent">
             保 存
           </el-button>
@@ -377,6 +377,24 @@ function resetContentForm() {
     remark: "",
     location: ""
   }
+}
+
+function resolveOssKeyFromLocation(input) {
+  let path = (input || "").trim()
+  if (!path) {
+    return ""
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    try {
+      const url = new URL(path)
+      path = url.pathname || ""
+    } catch (e) {
+    }
+  }
+  if (path.startsWith("/")) {
+    path = path.substring(1)
+  }
+  return path
 }
 
 /** 查询根区域列表（公司信息） */
@@ -597,17 +615,28 @@ function handleDeleteContent(row) {
     return
   }
   proxy.$modal.confirm('是否确认删除该文件？').then(() => {
-    const fileName = getFileNameFromPath(row.location || "")
-    if (!fileName) {
+    const key = resolveOssKeyFromLocation(row.location || "")
+    if (!key) {
       return request({
         url: "/system/contentlib/" + row.id,
         method: "delete"
       })
     }
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      try {
+        const url = new URL(path)
+        path = url.pathname || ""
+      } catch (e) {
+        // ignore parse error, keep original path
+      }
+    }
+    if (path.startsWith("/")) {
+      path = path.substring(1)
+    }
     return request({
       url: "/common/delete",
       method: "post",
-      params: { fileName }
+      params: { fileName: key }
     }).then(() => {
       return request({
         url: "/system/contentlib/" + row.id,
@@ -624,6 +653,33 @@ function handleAddContent() {
   resetContentForm()
   contentForm.value.pid = currentNode.value ? currentNode.value.id : null
   contentDialogOpen.value = true
+}
+
+function handleCancelContent() {
+  const value = contentForm.value.location || ""
+  const parts = value.split(",").map(v => v.trim()).filter(Boolean)
+  if (!parts.length) {
+    contentDialogOpen.value = false
+    resetContentForm()
+    return
+  }
+  const keys = parts.map(p => resolveOssKeyFromLocation(p)).filter(Boolean)
+  if (!keys.length) {
+    contentDialogOpen.value = false
+    resetContentForm()
+    return
+  }
+  const tasks = keys.map(fileName => {
+    return request({
+      url: "/common/delete",
+      method: "post",
+      params: { fileName }
+    }).catch(() => null)
+  })
+  Promise.all(tasks).finally(() => {
+    contentDialogOpen.value = false
+    resetContentForm()
+  })
 }
 
 function handleDownloadContent(row) {
