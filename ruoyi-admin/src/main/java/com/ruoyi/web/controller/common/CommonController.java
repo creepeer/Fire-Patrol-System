@@ -45,7 +45,7 @@ public class CommonController
      * @param delete 是否删除
      */
     @GetMapping("/download")
-    public void fileDownload(String fileName, Boolean delete, HttpServletResponse response, HttpServletRequest request)
+    public void fileDownload(String fileName, Boolean delete, HttpServletResponse response)
     {
         try
         {
@@ -190,4 +190,5 @@ public class CommonController
             log.error("下载文件失败", e);
         }
     }
+    //TODO 删除优化，删除多个文件不用重复删除
 }
