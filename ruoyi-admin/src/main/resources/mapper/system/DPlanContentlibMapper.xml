@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.DPlanContentlibMapper">
+    
+    <resultMap type="DPlanContentlib" id="DPlanContentlibResult">
+        <result property="id"    column="id"    />
+        <result property="planId"    column="plan_id"    />
+        <result property="contentlibId"    column="contentlib_id"    />
+        <result property="creator"    column="creator"    />
+        <result property="creatorTime"    column="creator_time"    />
+        <result property="modifier"    column="modifier"    />
+        <result property="modifierTime"    column="modifier_time"    />
+    </resultMap>
+
+    <sql id="selectDPlanContentlibVo">
+        select id, plan_id, contentlib_id, creator, creator_time, modifier, modifier_time from d_plan_contentlib
+    </sql>
+
+    <select id="selectDPlanContentlibList" parameterType="DPlanContentlib" resultMap="DPlanContentlibResult">
+        <include refid="selectDPlanContentlibVo"/>
+        <where>  
+            <if test="planId != null "> and plan_id = #{planId}</if>
+            <if test="contentlibId != null "> and contentlib_id = #{contentlibId}</if>
+            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+        </where>
+    </select>
+    
+    <select id="selectDPlanContentlibById" parameterType="Long" resultMap="DPlanContentlibResult">
+        <include refid="selectDPlanContentlibVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertDPlanContentlib" parameterType="DPlanContentlib" useGeneratedKeys="true" keyProperty="id">
+        insert into d_plan_contentlib
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="planId != null">plan_id,</if>
+            <if test="contentlibId != null">contentlib_id,</if>
+            <if test="creator != null">creator,</if>
+            <if test="creatorTime != null">creator_time,</if>
+            <if test="modifier != null">modifier,</if>
+            <if test="modifierTime != null">modifier_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="planId != null">#{planId},</if>
+            <if test="contentlibId != null">#{contentlibId},</if>
+            <if test="creator != null">#{creator},</if>
+            <if test="creatorTime != null">#{creatorTime},</if>
+            <if test="modifier != null">#{modifier},</if>
+            <if test="modifierTime != null">#{modifierTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateDPlanContentlib" parameterType="DPlanContentlib">
+        update d_plan_contentlib
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="planId != null">plan_id = #{planId},</if>
+            <if test="contentlibId != null">contentlib_id = #{contentlibId},</if>
+            <if test="creator != null">creator = #{creator},</if>
+            <if test="creatorTime != null">creator_time = #{creatorTime},</if>
+            <if test="modifier != null">modifier = #{modifier},</if>
+            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteDPlanContentlibById" parameterType="Long">
+        delete from d_plan_contentlib where id = #{id}
+    </delete>
+
+    <delete id="deleteDPlanContentlibByIds" parameterType="String">
+        delete from d_plan_contentlib where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

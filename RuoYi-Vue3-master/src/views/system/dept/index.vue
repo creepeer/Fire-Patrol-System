@@ -38,6 +38,15 @@
          </el-col>
          <el-col :span="1.5">
             <el-button
+               type="primary"
+               plain
+               icon="Plus"
+               @click="handleAddCompany"
+               v-hasPermi="['system:dept:add']"
+            >新增公司</el-button>
+         </el-col>
+         <el-col :span="1.5">
+            <el-button
                type="info"
                plain
                icon="Sort"
@@ -55,14 +64,25 @@
          :default-expand-all="isExpandAll"
          :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       >
-         <el-table-column prop="deptName" label="部门名称" width="260"></el-table-column>
-         <el-table-column prop="orderNum" label="排序" width="200"></el-table-column>
-         <el-table-column prop="status" label="状态" width="100">
+         <el-table-column prop="deptName" label="部门名称" width="160"></el-table-column>
+         <el-table-column prop="deptType" label="部门类型" width="100"></el-table-column>
+         <el-table-column prop="leader" label="负责人" width="100"></el-table-column>
+         <el-table-column prop="phone" label="联系电话" width="120"></el-table-column>
+         <el-table-column prop="fax" label="传真" width="120"></el-table-column>
+         <el-table-column prop="address" label="地址" min-width="160"></el-table-column>
+         <el-table-column prop="email" label="邮箱" width="150"></el-table-column>
+         <el-table-column prop="creditCode" label="统一社会信用代码" min-width="180"></el-table-column>
+         <el-table-column prop="inspectionContent" label="检测内容" min-width="160">
+            <template #default="scope">
+               <span>{{ renderInspectionContent(scope.row.inspectionContent) }}</span>
+            </template>
+         </el-table-column>
+         <el-table-column prop="status" label="状态" width="80">
             <template #default="scope">
                <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
             </template>
          </el-table-column>
-         <el-table-column label="创建时间" align="center" prop="createTime" width="200">
+         <el-table-column label="创建时间" align="center" prop="createTime" width="160">
             <template #default="scope">
                <span>{{ parseTime(scope.row.createTime) }}</span>
             </template>
@@ -71,13 +91,20 @@
             <template #default="scope">
                <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:dept:edit']">修改</el-button>
                <el-button link type="primary" icon="Plus" @click="handleAdd(scope.row)" v-hasPermi="['system:dept:add']">新增</el-button>
-               <el-button v-if="scope.row.parentId != 0" link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:dept:remove']">删除</el-button>
+               <el-button
+                  v-if="scope.row.parentId != 0 || (!scope.row.hasChildren && (!scope.row.children || scope.row.children.length === 0))"
+                  link
+                  type="primary"
+                  icon="Delete"
+                  @click="handleDelete(scope.row)"
+                  v-hasPermi="['system:dept:remove']"
+               >删除</el-button>
             </template>
          </el-table-column>
       </el-table>
 
       <!-- 添加或修改部门对话框 -->
-      <el-dialog :title="title" v-model="open" width="600px" append-to-body>
+      <el-dialog :title="title" v-model="open" width="600px" append-to-body @close="handleDialogClose">
          <el-form ref="deptRef" :model="form" :rules="rules" label-width="80px">
             <el-row>
                <el-col :span="24" v-if="form.parentId !== 0">
@@ -98,6 +125,11 @@
                   </el-form-item>
                </el-col>
                <el-col :span="12">
+                  <el-form-item label="部门类型" prop="deptType">
+                     <el-input v-model="form.deptType" placeholder="请输入部门类型" />
+                  </el-form-item>
+               </el-col>
+               <el-col :span="12">
                   <el-form-item label="显示排序" prop="orderNum">
                      <el-input-number v-model="form.orderNum" controls-position="right" :min="0" />
                   </el-form-item>
@@ -113,8 +145,23 @@
                   </el-form-item>
                </el-col>
                <el-col :span="12">
+                  <el-form-item label="传真" prop="fax">
+                     <el-input v-model="form.fax" placeholder="请输入传真" />
+                  </el-form-item>
+               </el-col>
+               <el-col :span="12">
                   <el-form-item label="邮箱" prop="email">
                      <el-input v-model="form.email" placeholder="请输入邮箱" maxlength="50" />
+                  </el-form-item>
+               </el-col>
+               <el-col :span="12">
+                  <el-form-item label="地址" prop="address">
+                     <el-input v-model="form.address" placeholder="请输入地址" />
+                  </el-form-item>
+               </el-col>
+               <el-col :span="12">
+                  <el-form-item label="统一社会信用代码" prop="creditCode">
+                     <el-input v-model="form.creditCode" placeholder="请输入统一社会信用代码" />
                   </el-form-item>
                </el-col>
                <el-col :span="12">
@@ -126,6 +173,15 @@
                            :value="dict.value"
                         >{{ dict.label }}</el-radio>
                      </el-radio-group>
+                  </el-form-item>
+               </el-col>
+               <el-col :span="24">
+                  <el-form-item label="检测内容" prop="inspectionContent">
+                     <file-upload
+                        v-model="form.inspectionContent"
+                        :limit="1"
+                        :file-size="20"
+                     />
                   </el-form-item>
                </el-col>
             </el-row>
@@ -142,6 +198,7 @@
 
 <script setup name="Dept">
 import { listDept, getDept, delDept, addDept, updateDept, listDeptExcludeChild } from "@/api/system/dept"
+import request from "@/utils/request"
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable")
@@ -154,6 +211,8 @@ const title = ref("")
 const deptOptions = ref([])
 const isExpandAll = ref(true)
 const refreshTable = ref(true)
+const originalInspectionContent = ref("")
+const dialogSaved = ref(false)
 
 const data = reactive({
   form: {},
@@ -184,7 +243,6 @@ function getList() {
 /** 取消按钮 */
 function cancel() {
   open.value = false
-  reset()
 }
 
 /** 表单重置 */
@@ -193,13 +251,114 @@ function reset() {
     deptId: undefined,
     parentId: undefined,
     deptName: undefined,
+    deptType: undefined,
+    address: undefined,
+    creditCode: undefined,
     orderNum: 0,
     leader: undefined,
+    fax: undefined,
+    inspectionContent: undefined,
     phone: undefined,
     email: undefined,
     status: "0"
   }
   proxy.resetForm("deptRef")
+}
+
+function splitLocationParts(value) {
+  return (value || "")
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean)
+}
+
+function resolveOssKeyFromLocation(input) {
+  let path = (input || "").trim()
+  if (!path) {
+    return ""
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    try {
+      const url = new URL(path)
+      path = url.pathname || ""
+    } catch (e) {
+    }
+  }
+  if (path.startsWith("/")) {
+    path = path.substring(1)
+  }
+  return path
+}
+
+function getInspectionContentKeysFromValue(value) {
+  const parts = splitLocationParts(value)
+  const keys = []
+  for (const p of parts) {
+    const key = resolveOssKeyFromLocation(p)
+    if (key) {
+      keys.push(key)
+    }
+  }
+  return keys
+}
+
+function renderInspectionContent(value) {
+  const parts = splitLocationParts(value)
+  if (!parts.length) {
+    return ""
+  }
+  const first = parts[0]
+  const index = first.lastIndexOf("/")
+  if (index !== -1 && index < first.length - 1) {
+    return first.substring(index + 1)
+  }
+  return first
+}
+
+function deleteOssFilesByKeys(keys) {
+  if (!keys || !keys.length) {
+    return Promise.resolve()
+  }
+  const tasks = keys.map(fileName => {
+    return request({
+      url: "/common/delete",
+      method: "post",
+      params: { fileName },
+      headers: { repeatSubmit: false }
+    }).catch(() => null)
+  })
+  return Promise.all(tasks).then(() => {})
+}
+
+function handleDialogClose() {
+  const beforeParts = splitLocationParts(originalInspectionContent.value || "")
+  const afterParts = splitLocationParts(form.value.inspectionContent || "")
+  if (dialogSaved.value) {
+    dialogSaved.value = false
+    originalInspectionContent.value = form.value.inspectionContent || ""
+    reset()
+    return
+  }
+  const beforeSet = new Set(beforeParts)
+  const newParts = afterParts.filter(p => !beforeSet.has(p))
+  if (!newParts.length) {
+    reset()
+    return
+  }
+  const keys = []
+  for (const p of newParts) {
+    const key = resolveOssKeyFromLocation(p)
+    if (key) {
+      keys.push(key)
+    }
+  }
+  if (!keys.length) {
+    reset()
+    return
+  }
+  deleteOssFilesByKeys(keys).finally(() => {
+    reset()
+  })
 }
 
 /** 搜索按钮操作 */
@@ -216,6 +375,7 @@ function resetQuery() {
 /** 新增按钮操作 */
 function handleAdd(row) {
   reset()
+  originalInspectionContent.value = ""
   listDept().then(response => {
     deptOptions.value = proxy.handleTree(response.data, "deptId")
   })
@@ -224,6 +384,15 @@ function handleAdd(row) {
   }
   open.value = true
   title.value = "添加部门"
+}
+
+/** 新增公司按钮操作 */
+function handleAddCompany() {
+  reset()
+  originalInspectionContent.value = ""
+  form.value.parentId = 0
+  open.value = true
+  title.value = "添加公司"
 }
 
 /** 展开/折叠操作 */
@@ -243,6 +412,7 @@ function handleUpdate(row) {
   })
   getDept(row.deptId).then(response => {
     form.value = response.data
+    originalInspectionContent.value = form.value.inspectionContent || ""
     open.value = true
     title.value = "修改部门"
   })
@@ -255,12 +425,14 @@ function submitForm() {
       if (form.value.deptId != undefined) {
         updateDept(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功")
+          dialogSaved.value = true
           open.value = false
           getList()
         })
       } else {
         addDept(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功")
+          dialogSaved.value = true
           open.value = false
           getList()
         })
@@ -272,7 +444,11 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   proxy.$modal.confirm('是否确认删除名称为"' + row.deptName + '"的数据项?').then(function() {
-    return delDept(row.deptId)
+    const keys = getInspectionContentKeysFromValue(row.inspectionContent || "")
+    if (!keys.length) {
+      return delDept(row.deptId)
+    }
+    return deleteOssFilesByKeys(keys).then(() => delDept(row.deptId))
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("删除成功")

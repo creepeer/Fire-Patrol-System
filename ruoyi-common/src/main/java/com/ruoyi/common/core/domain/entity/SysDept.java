@@ -12,7 +12,7 @@ import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
  * 部门表 sys_dept
- * 
+ *
  * @author ruoyi
  */
 public class SysDept extends BaseEntity
@@ -31,11 +31,26 @@ public class SysDept extends BaseEntity
     /** 部门名称 */
     private String deptName;
 
+    /** 单位类型 */
+    private String deptType;
+
+    /** 公司地址 */
+    private String address;
+
+    /** 统一信用编码 */
+    private String creditCode;
+
     /** 显示顺序 */
     private Integer orderNum;
 
     /** 负责人 */
     private String leader;
+
+    /** 传真 */
+    private String fax;
+
+    /** 检测内容 */
+    private String inspectionContent;
 
     /** 联系电话 */
     private String phone;
@@ -51,7 +66,7 @@ public class SysDept extends BaseEntity
 
     /** 父部门名称 */
     private String parentName;
-    
+
     /** 子部门 */
     private List<SysDept> children = new ArrayList<SysDept>();
 
@@ -97,6 +112,38 @@ public class SysDept extends BaseEntity
         this.deptName = deptName;
     }
 
+    public String getDeptType()
+    {
+        return deptType;
+    }
+
+    public void setDeptType(String deptType)
+    {
+        this.deptType = deptType;
+    }
+
+    @Size(min = 0, max = 255, message = "公司地址长度不能超过255个字符")
+    public String getAddress()
+    {
+        return address;
+    }
+
+    public void setAddress(String address)
+    {
+        this.address = address;
+    }
+
+    @Size(min = 0, max = 255, message = "统一信用编码长度不能超过255个字符")
+    public String getCreditCode()
+    {
+        return creditCode;
+    }
+
+    public void setCreditCode(String creditCode)
+    {
+        this.creditCode = creditCode;
+    }
+
     @NotNull(message = "显示顺序不能为空")
     public Integer getOrderNum()
     {
@@ -108,6 +155,7 @@ public class SysDept extends BaseEntity
         this.orderNum = orderNum;
     }
 
+    @Size(min = 0, max = 20, message = "负责人姓名长度不能超过20个字符")
     public String getLeader()
     {
         return leader;
@@ -116,6 +164,28 @@ public class SysDept extends BaseEntity
     public void setLeader(String leader)
     {
         this.leader = leader;
+    }
+
+    @Size(min = 0, max = 255, message = "传真号码长度不能超过255个字符")
+    public String getFax()
+    {
+        return fax;
+    }
+
+    public void setFax(String fax)
+    {
+        this.fax = fax;
+    }
+
+    @Size(min = 0, max = 255, message = "检测内容长度不能超过255个字符")
+    public String getInspectionContent()
+    {
+        return inspectionContent;
+    }
+
+    public void setInspectionContent(String inspectionContent)
+    {
+        this.inspectionContent = inspectionContent;
     }
 
     @Size(min = 0, max = 11, message = "联系电话长度不能超过11个字符")
@@ -184,20 +254,25 @@ public class SysDept extends BaseEntity
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
-            .append("deptId", getDeptId())
-            .append("parentId", getParentId())
-            .append("ancestors", getAncestors())
-            .append("deptName", getDeptName())
-            .append("orderNum", getOrderNum())
-            .append("leader", getLeader())
-            .append("phone", getPhone())
-            .append("email", getEmail())
-            .append("status", getStatus())
-            .append("delFlag", getDelFlag())
-            .append("createBy", getCreateBy())
-            .append("createTime", getCreateTime())
-            .append("updateBy", getUpdateBy())
-            .append("updateTime", getUpdateTime())
-            .toString();
+                .append("deptId", getDeptId())
+                .append("parentId", getParentId())
+                .append("ancestors", getAncestors())
+                .append("deptName", getDeptName())
+                .append("deptType", getDeptType())
+                .append("address", getAddress())
+                .append("creditCode", getCreditCode())
+                .append("orderNum", getOrderNum())
+                .append("leader", getLeader())
+                .append("fax", getFax())
+                .append("inspectionContent", getInspectionContent())
+                .append("phone", getPhone())
+                .append("email", getEmail())
+                .append("status", getStatus())
+                .append("delFlag", getDelFlag())
+                .append("createBy", getCreateBy())
+                .append("createTime", getCreateTime())
+                .append("updateBy", getUpdateBy())
+                .append("updateTime", getUpdateTime())
+                .toString();
     }
 }

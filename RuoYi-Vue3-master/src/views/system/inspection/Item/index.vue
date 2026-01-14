@@ -370,6 +370,13 @@ function handleDeleteCurrent() {
   }
   const id = currentItem.value.id
   proxy.$modal.confirm('是否确认删除该检测项？').then(() => {
+    const keys = getAttachmentKeysFromContent(
+      currentItem.value.requirements,
+      currentItem.value.method
+    )
+    if (keys.length) {
+      return deleteOssFilesByKeys(keys).finally(() => delInspectionItem(id))
+    }
     return delInspectionItem(id)
   }).then(() => {
     proxy.$modal.msgSuccess("删除成功")
@@ -473,15 +480,9 @@ function extractAttachmentUrls(html) {
     return []
   }
   const result = []
-  const imgRegex = /<img [^>]*src="([^"]+)"[^>]*>/gi
-  const linkRegex = /<a [^>]*href="([^"]+)"[^>]*>/gi
+  const attrRegex = /(?:src|href)\s*=\s*["']([^"']+)["']/gi
   let match
-  while ((match = imgRegex.exec(html)) !== null) {
-    if (match[1]) {
-      result.push(match[1])
-    }
-  }
-  while ((match = linkRegex.exec(html)) !== null) {
+  while ((match = attrRegex.exec(html)) !== null) {
     if (match[1]) {
       result.push(match[1])
     }
@@ -491,21 +492,9 @@ function extractAttachmentUrls(html) {
 
 function collectAttachmentUrls(requirements, method) {
   const urls = []
-  const seen = new Set()
-  const list = []
-  list.push(...extractAttachmentUrls(requirements))
-  list.push(...extractAttachmentUrls(method))
-  for (const url of list) {
-    if (!url) {
-      continue
-    }
-    if (seen.has(url)) {
-      continue
-    }
-    seen.add(url)
-    urls.push(url)
-  }
-  return urls
+  urls.push(...extractAttachmentUrls(requirements))
+  urls.push(...extractAttachmentUrls(method))
+  return urls.filter(Boolean)
 }
 
 function resolveOssKeyFromLocation(input) {
@@ -546,7 +535,8 @@ function deleteOssFilesByKeys(keys) {
     return request({
       url: "/common/delete",
       method: "post",
-      params: { fileName }
+      params: { fileName },
+      headers: { repeatSubmit: false }
     }).catch(() => null)
   })
   return Promise.all(tasks).then(() => {})
