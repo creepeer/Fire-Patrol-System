@@ -1,6 +1,9 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+
+import com.ruoyi.common.annotation.AutoFill;
+import com.ruoyi.common.enums.OperationType;
 import com.ruoyi.system.domain.DInspectionPlan;
 
 /**
@@ -33,6 +36,7 @@ public interface DInspectionPlanMapper
      * @param dInspectionPlan 检测计划管理
      * @return 结果
      */
+    @AutoFill(value = OperationType.INSERT)
     public int insertDInspectionPlan(DInspectionPlan dInspectionPlan);
 
     /**
@@ -41,6 +45,7 @@ public interface DInspectionPlanMapper
      * @param dInspectionPlan 检测计划管理
      * @return 结果
      */
+    @AutoFill(value = OperationType.UPDATE)
     public int updateDInspectionPlan(DInspectionPlan dInspectionPlan);
 
     /**

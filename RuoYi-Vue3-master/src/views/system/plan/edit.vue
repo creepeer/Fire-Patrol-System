@@ -3,7 +3,7 @@
     <el-card shadow="never">
       <template #header>
         <div class="card-header">
-          <span>新增检测计划</span>
+          <span>修改检测计划</span>
         </div>
       </template>
 
@@ -385,7 +385,7 @@
            <br/>
            <el-checkbox v-model="confirmations.infoVerified">我已确认所有信息准确无误</el-checkbox>
            <br/>
-           <el-checkbox v-model="confirmations.readyToPublish">我已准备好发布巡检计划</el-checkbox>
+           <el-checkbox v-model="confirmations.readyToPublish">我已准备好提交修改</el-checkbox>
         </div>
       </div>
 
@@ -393,10 +393,9 @@
       <div class="mt-20 text-center">
         <el-button v-if="currentStep > 0" @click="prevStep">上一步</el-button>
         <el-button v-if="currentStep < steps.length - 1" type="primary" @click="nextStep">下一步</el-button>
-        <el-button v-if="currentStep === steps.length - 1" type="success" :disabled="!canPublish || isPublishing" @click="publishPlan">
-          {{ isPublishing ? '发布中...' : '发布巡检计划' }}
+        <el-button v-if="currentStep === steps.length - 1" type="success" :disabled="!canPublish || isPublishing" @click="submitUpdate">
+          {{ isPublishing ? '提交中...' : '提交修改' }}
         </el-button>
-        <el-button type="info" plain @click="saveDraft">保存草稿</el-button>
         <el-button @click="cancel">取消</el-button>
       </div>
 
@@ -411,7 +410,14 @@ import { listZone } from "@/api/system/zone"
 import { listDept } from "@/api/system/dept"
 import { listUser } from "@/api/system/user"
 import { listKnowledgeNode } from "@/api/system/knowledgeNode"
-import { addPlan } from "@/api/system/plan"
+import { getPlan, updatePlan } from "@/api/system/plan"
+
+const props = defineProps({
+  planId: {
+    type: [Number, String],
+    default: null
+  }
+})
 
 const baseUrl = import.meta.env.VITE_APP_BASE_API
 
@@ -431,39 +437,32 @@ const getFullLocation = (path) => {
 
 const emit = defineEmits(['save', 'cancel'])
 
-// ================== 步骤配置 ==================
 const steps = ref([
   { key: 'project', label: '选定项目', completed: false },
   { key: 'company', label: '选定公司', completed: false },
   { key: 'distribution', label: '人员区域分布', completed: false },
   { key: 'documents', label: '选定文档', completed: false },
-  { key: 'preview', label: '发布预览', completed: false }
+  { key: 'preview', label: '提交预览', completed: false }
 ])
 
 const currentStep = ref(0)
-
-// ================== 项目数据 ==================
 const { proxy } = getCurrentInstance()
 const zoneTreeData = ref([])
 const scopeTreeRef = ref(null)
 const selectedNodes = ref([])
-
 const selectedRegionId = ref(null)
 const selectedProjectId = ref(null)
 
-// 顶级节点（区域）
 const topLevelRegions = computed(() => {
   return zoneTreeData.value.filter(node => node.pid === 0)
 })
 
-// 可选项目（选中区域的子节点）
 const availableProjects = computed(() => {
   if (!selectedRegionId.value) return []
   const region = zoneTreeData.value.find(node => node.id === selectedRegionId.value)
   return region ? (region.children || []) : []
 })
 
-// 根据选中的项目过滤树数据
 const filteredTreeData = computed(() => {
   if (!selectedProjectId.value) return []
   const projectNode = availableProjects.value.find(p => p.id === selectedProjectId.value)
@@ -474,43 +473,38 @@ const selectedProject = computed(() => {
   return availableProjects.value.find(p => p.id === selectedProjectId.value)
 })
 
-// ================== 表单数据 ==================
 const formData = reactive({
   planName: '',
-  inspector: '张三',
-  inspectorPhone: '17593958392',
+  inspector: '',
+  inspectorPhone: '',
   inspectionCycle: 'monthly',
   customCycle: 30,
-  startTime: '2024-07-28T08:00',
+  startTime: '',
   endTime: '',
   requirements: '',
   status: '0'
 })
 
-// ================== 公司数据 ==================
 const companies = ref([])
 
 const getCompanies = async () => {
   try {
     const response = await listDept()
     const list = response.data || []
-    // 筛选根目录公司 (parentId === 0)
     companies.value = list
       .filter(dept => dept.parentId === 0)
       .map(dept => ({
         id: dept.deptId,
         name: dept.deptName,
         qualification: dept.deptType ? `${dept.deptType}资质` : '综合资质',
-        qualificationClass: 'level-a', // 默认样式
+        qualificationClass: 'level-a',
         businessType: dept.deptType || '综合服务',
-        contact: dept.leader,
-        phone: dept.phone,
-        personnelCount: 20, // 默认显示
-        rating: 5.0, // 默认好评
-        arSupport: true, // 默认支持
-        iotSupport: true, // 默认支持
-        description: dept.address ? `公司地址: ${dept.address}` : '暂无详细地址',
-        specialties: dept.inspectionContent ? [dept.inspectionContent] : ['安全检测', '隐患排查']
+        contact: dept.leader || '暂无',
+        phone: dept.phone || '暂无',
+        arSupport: true,
+        iotSupport: true,
+        description: '专业提供检测服务',
+        specialties: ['消防', '电气']
       }))
   } catch (error) {
     console.error('Failed to load companies:', error)
@@ -522,34 +516,25 @@ const selectedCompany = computed(() => {
   return companies.value.find(c => c.id === selectedCompanyId.value)
 })
 
-const handleCompanyChange = (row) => {
-  if (row) {
-    selectCompany(row.id)
-  }
+const handleCompanyChange = (val) => {
+  if (val) selectCompany(val.id)
 }
 
-// ================== 人员数据 ==================
 const personnelList = ref([])
 
 const getPersonnel = async (deptId) => {
-  if (!deptId) {
-    personnelList.value = []
-    return
-  }
+  if (!deptId) return
   try {
     const response = await listUser({ pageNum: 1, pageSize: 10, deptId: deptId })
     const users = response.rows || []
-    
-    // 保留现有的分配信息（如果有，比如来自草稿）
     const existingAssignments = new Map(
       personnelList.value.map(p => [p.id, p.assignedAreas])
     )
-    
     personnelList.value = users.map(user => ({
       id: user.userId,
       name: user.nickName,
-      role: '巡检员', // 默认角色
-      status: 'online', // 默认状态
+      role: '巡检员',
+      status: 'online',
       companyId: deptId,
       assignedAreas: existingAssignments.get(user.userId) || []
     }))
@@ -572,12 +557,10 @@ const selectedPersonnel = computed(() => {
   return personnelList.value.find(p => p.id === selectedPersonnelId.value)
 })
 
-// ================== 文档数据 ==================
 const knowledgeTreeData = ref([])
 const knowledgeTreeRef = ref(null)
 const currentKnowledgeNode = ref(null)
 const loadingDocuments = ref(false)
-
 const allDocuments = ref([])
 
 const getModuleTypeLabel = (val) => {
@@ -588,29 +571,12 @@ const getModuleTypeLabel = (val) => {
   return "其他"
 }
 
-const getDocuments = async () => {
-  // 优先使用选中的项目ID，如果没有则默认为2（兼容测试）
-  const projectId = selectedProjectId.value || 2
-  
+const getKnowledgeNodes = async () => {
   try {
-    loadingDocuments.value = true
-    // 1. 获取知识库节点（构建树）
-    const nodeResponse = await listKnowledgeNode({ projectId: projectId })
-    const nodes = nodeResponse.data || []
-    
-    knowledgeTreeData.value = proxy.handleTree(nodes, "id", "pid")
-    
-    // 默认选中第一个节点（如果有）
-    if (knowledgeTreeData.value.length > 0) {
-      // 这里的逻辑可以优化，比如展开第一个节点
-      // 这里暂时不自动选中，等待用户点击
-    }
-
-    // 2. 获取所有文档（这里可以保留全量获取，也可以改为点击获取，鉴于之前逻辑，我们还是保留全量获取以便过滤）
-    // 或者，为了性能，我们改为点击节点时获取。
-    // 这里我们先清空 allDocuments，改为点击节点时动态加载
+    const response = await listKnowledgeNode()
+    const list = response.data || response.rows || []
+    knowledgeTreeData.value = proxy.handleTree(list, "id", "pid")
     allDocuments.value = []
-    
   } catch (error) {
     console.error('Failed to load knowledge nodes:', error)
     knowledgeTreeData.value = []
@@ -619,26 +585,16 @@ const getDocuments = async () => {
   }
 }
 
-// 点击树节点
 const handleKnowledgeNodeClick = async (data) => {
   currentKnowledgeNode.value = data
   loadingDocuments.value = true
-  
   try {
     const res = await request({
       url: "/system/contentlib/list",
       method: "get",
       params: { pid: data.id }
     })
-    
     const rows = res.rows || res.data || []
-    
-    // 更新当前节点的文档列表
-    // 注意：这里我们不需要把所有文档存到 allDocuments，只需要维护一个当前显示的文档列表
-    // 但是为了 isDocumentSelected 正常工作（如果它依赖 allDocuments），我们需要确认一下
-    // isDocumentSelected 依赖 selectedDocuments，而 toggleDocumentSelection 依赖 allDocuments 来查找 doc 对象
-    // 所以我们需要把新加载的文档加入到 allDocuments (去重) 或者修改 toggleDocumentSelection 的逻辑
-    
     const newDocs = rows.map(row => ({
       id: row.id,
       title: row.name || '未命名文档',
@@ -651,16 +607,12 @@ const handleKnowledgeNodeClick = async (data) => {
       fileType: getModuleTypeLabel(row.status),
       location: row.location
     }))
-    
-    // 更新当前显示的文档
-    // 同时合并到 allDocuments 以便 toggle 使用
     newDocs.forEach(doc => {
       const exists = allDocuments.value.some(d => d.id === doc.id)
       if (!exists) {
         allDocuments.value.push(doc)
       }
     })
-    
   } catch (error) {
     console.error('Failed to load documents for node:', error)
   } finally {
@@ -677,16 +629,14 @@ const clearSelectedDocuments = () => {
   selectedDocuments.value = []
 }
 
-// 监听步骤变化，进入文档选择步骤时获取数据
 watch(currentStep, (newStep) => {
   if (newStep === 3) {
-    getDocuments()
+    getKnowledgeNodes()
   }
 })
 
 const selectedDocuments = ref([])
 
-// ================== 发布确认 ==================
 const confirmations = reactive({
   agreement: false,
   infoVerified: false,
@@ -695,20 +645,18 @@ const confirmations = reactive({
 
 const isPublishing = ref(false)
 
-// ================== 计算属性 ==================
 const canProceed = computed(() => {
   switch (currentStep.value) {
-    case 0: // 选定项目
+    case 0:
       return selectedProjectId.value && formData.planName && selectedAreas.value.length > 0
-    case 1: // 选定公司
+    case 1:
       return !!selectedCompanyId.value
-    case 2: // 人员区域分布
-      // 检查所有区域是否都已分配
+    case 2:
       const totalAssignedAreas = personnelList.value.reduce((sum, person) => 
         sum + person.assignedAreas.length, 0)
       return totalAssignedAreas === selectedAreas.value.length && totalAssignedAreas > 0
-    case 3: // 选定文档
-      return true // 文档可选，不强求
+    case 3:
+      return true
     default:
       return true
   }
@@ -722,29 +670,20 @@ const selectedAreas = computed(() => {
   return selectedNodes.value.map(node => ({
     id: node.id,
     name: node.zname,
-    level: node.zonetype
+    level: node.zonetype,
+    path: node.path // assuming node has path or we can't show it
   }))
 })
 
-const selectedAreaCount = computed(() => {
-  return selectedAreas.value.length
-})
-
-// ================== 方法定义 ==================
 const setStep = (index) => {
-  // 允许返回上一步
   if (index < currentStep.value) {
     currentStep.value = index
     return
   }
-  
-  // 检查前面所有步骤是否完成
   for (let i = 0; i < index; i++) {
-    // 简单的校验逻辑，可以根据需要增强
     if (i === 0 && !selectedProjectId.value) return
     if (i === 1 && !selectedCompanyId.value) return
   }
-  
   currentStep.value = index
 }
 
@@ -765,7 +704,6 @@ const cancel = () => {
   emit('cancel')
 }
 
-// 处理区域变更
 const handleRegionChange = () => {
   selectedProjectId.value = null
   selectedNodes.value = []
@@ -774,14 +712,11 @@ const handleRegionChange = () => {
   }
 }
 
-// 处理项目变更
 const handleProjectChange = (val) => {
-  selectedNodes.value = [] // 清空已选
+  selectedNodes.value = []
   if (scopeTreeRef.value) {
-    scopeTreeRef.value.setCheckedKeys([]) // 清空树勾选
+    scopeTreeRef.value.setCheckedKeys([])
   }
-
-  // 继承项目负责人信息
   const project = availableProjects.value.find(p => p.id === val)
   if (project) {
     formData.inspector = project.manager || ''
@@ -789,16 +724,13 @@ const handleProjectChange = (val) => {
   }
 }
 
-// 处理树勾选变更
 const handleCheckChange = (data, checkedInfo) => {
   selectedNodes.value = checkedInfo.checkedNodes
 }
 
-// 移除已选节点
 const removeNode = (node) => {
   if (scopeTreeRef.value) {
     scopeTreeRef.value.setChecked(node.id, false)
-    // 更新 selectedNodes
     selectedNodes.value = scopeTreeRef.value.getCheckedNodes()
   }
 }
@@ -830,23 +762,16 @@ const isAreaAssignedToPersonnel = (areaId) => {
 
 const toggleAreaAssignment = (areaId, checked) => {
   if (!selectedPersonnel.value) return
-  
   const area = selectedAreas.value.find(a => a.id === areaId)
   if (!area) return
-  
   if (checked) {
-    // 检查是否已经分配给其他人
     const otherPerson = personnelList.value.find(person => 
       person.id !== selectedPersonnelId.value && 
       person.assignedAreas.some(a => a.id === areaId)
     )
-    
     if (otherPerson) {
-      // 如果已分配给其他人，直接重新分配（界面上已有浅蓝色提示）
-      // 从其他人员中移除
       otherPerson.assignedAreas = otherPerson.assignedAreas.filter(a => a.id !== areaId)
     }
-    
     selectedPersonnel.value.assignedAreas.push(area)
   } else {
     selectedPersonnel.value.assignedAreas = selectedPersonnel.value.assignedAreas.filter(
@@ -857,13 +782,9 @@ const toggleAreaAssignment = (areaId, checked) => {
 
 const assignAllAreas = () => {
   if (!selectedPersonnel.value) return
-  
-  // 清空其他人的分配
   personnelList.value.forEach(person => {
     person.assignedAreas = []
   })
-  
-  // 全部分配给当前人员
   selectedPersonnel.value.assignedAreas = [...selectedAreas.value]
 }
 
@@ -882,14 +803,6 @@ const removeAreaAssignment = (areaId) => {
 const getAssignedAreaCount = (personnelId) => {
   const person = personnelList.value.find(p => p.id === personnelId)
   return person ? person.assignedAreas.length : 0
-}
-
-const getCategoryDocumentCount = (categoryId) => {
-  return allDocuments.value.filter(doc => doc.categoryId === categoryId).length
-}
-
-const getActiveCategoryDocuments = () => {
-  return allDocuments.value.filter(doc => doc.categoryId === activeCategoryId.value)
 }
 
 const isDocumentSelected = (docId) => {
@@ -911,23 +824,10 @@ const previewDocument = (doc) => {
   proxy.$modal.alert(doc.description, `预览文档: ${doc.title}`)
 }
 
-const getCategoryName = (categoryId) => {
-  const category = documentCategories.value.find(c => c.id === categoryId)
-  return category ? category.name : '未知'
-}
-
 const generatePlanCode = () => {
   const timestamp = new Date().getTime().toString().slice(-6)
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
   return `ZC-${timestamp}-${random}`
-}
-
-const getAreaCountByLevel = (level) => {
-  return selectedAreas.value.filter(area => area.level === level).length
-}
-
-const getSelectedDocumentCountByCategory = (categoryId) => {
-  return selectedDocuments.value.filter(doc => doc.categoryId === categoryId).length
 }
 
 const formatDateTime = (datetime) => {
@@ -935,48 +835,9 @@ const formatDateTime = (datetime) => {
   return datetime.replace('T', ' ')
 }
 
-const getCycleText = (cycle) => {
-  const texts = {
-    daily: '每日',
-    weekly: '每周',
-    monthly: '每月',
-    quarterly: '每季度',
-    yearly: '每年',
-    custom: `${formData.customCycle}天`
-  }
-  return texts[cycle] || cycle
-}
-
-const downloadPlan = () => {
-  const planData = {
-    planCode: generatePlanCode(),
-    project: selectedProject.value,
-    formData: { ...formData },
-    company: selectedCompany.value,
-    personnel: personnelList.value.map(p => ({
-      name: p.name,
-      assignedAreas: p.assignedAreas
-    })),
-    documents: selectedDocuments.value,
-    createdAt: new Date().toISOString()
-  }
-  
-  const dataStr = JSON.stringify(planData, null, 2)
-  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
-  
-  const exportFileDefaultName = `智巡科防巡检计划-${generatePlanCode()}.json`
-  
-  const linkElement = document.createElement('a')
-  linkElement.setAttribute('href', dataUri)
-  linkElement.setAttribute('download', exportFileDefaultName)
-  linkElement.click()
-  
-  proxy.$modal.msgSuccess('巡检计划书下载成功！')
-}
-
-const publishPlan = async () => {
+const submitUpdate = async () => {
   if (!canPublish.value) {
-    proxy.$modal.msgWarning('请完成所有确认项后再发布')
+    proxy.$modal.msgWarning('请完成所有确认项后再提交')
     return
   }
   
@@ -984,6 +845,7 @@ const publishPlan = async () => {
   
   try {
     const planData = {
+      id: props.planId,
       name: formData.planName,
       project: {
         id: selectedProject.value.id,
@@ -1023,130 +885,109 @@ const publishPlan = async () => {
         endTime: new Date(formData.endTime).toISOString(),
         cycle: formData.inspectionCycle
       },
-      status: formData.status,
-      createdAt: new Date().toISOString()
+      status: formData.status
     }
     
-    await addPlan(planData)
+    await updatePlan(planData)
     
-    console.log('发布的巡检计划：', planData)
-    // 使用后端返回的ID或者生成的planData不包含ID，这里可能需要调整提示信息
-    // 假设后端返回的数据包含生成的ID
-    // 如果 addPlan 没有返回值，或者返回 void，我们可能拿不到 ID。
-    // 通常 RuoYi 的 add 方法返回 AjaxResult，包含 msg, code, data(可能)。
-    // 如果 DTO 不包含 ID，说明是后端生成。
-    // 为了安全起见，我们提示成功即可，或者看 addPlan 的响应。
-    // 之前的代码: proxy.$modal.msgSuccess(`巡检计划发布成功！计划编号：${planData.id}`)
-    // 由于我们删除了 id，planData.id 是 undefined。
-    // 我们应该检查 addPlan 的返回值。
-    
-    proxy.$modal.msgSuccess(`巡检计划发布成功！`)
-    
-    // 清空草稿
-    localStorage.removeItem('patrolPlanDraft')
-    
+    proxy.$modal.msgSuccess(`巡检计划修改成功！`)
     emit('save')
     
   } catch (error) {
-    console.error('发布失败：', error)
-    proxy.$modal.msgError('发布失败，请稍后重试')
+    console.error('修改失败：', error)
+    proxy.$modal.msgError('修改失败，请稍后重试')
   } finally {
     isPublishing.value = false
   }
 }
 
-const saveDraft = () => {
-  const draftData = {
-    step: currentStep.value,
-    selectedRegionId: selectedRegionId.value,
-    selectedProjectId: selectedProjectId.value,
-    selectedNodes: selectedNodes.value,
-    formData: { ...formData },
-    selectedCompanyId: selectedCompanyId.value,
-    personnelList: personnelList.value,
-    selectedDocuments: selectedDocuments.value
-  }
-  
-  localStorage.setItem('patrolPlanDraft', JSON.stringify(draftData))
-  // console.log('草稿自动保存成功')
-}
-
-// ================== 草稿相关 ==================
-// 从 localStorage 加载草稿
-const loadDraft = () => {
-  const draftStr = localStorage.getItem('patrolPlanDraft')
-  if (draftStr) {
-    try {
-      const draftData = JSON.parse(draftStr)
-      currentStep.value = draftData.step || 0
-      selectedRegionId.value = draftData.selectedRegionId || null
-      selectedProjectId.value = draftData.selectedProjectId
-      selectedNodes.value = draftData.selectedNodes || []
-      Object.assign(formData, draftData.formData)
-      // 修复草稿中可能存在的旧状态值导致数据库插入报错的问题
-      if (formData.status !== '0' && formData.status !== '1') {
-        formData.status = '0'
-      }
-      selectedCompanyId.value = draftData.selectedCompanyId
-      personnelList.value = draftData.personnelList || personnelList.value
-      selectedDocuments.value = draftData.selectedDocuments || []
-    } catch (e) {
-      console.warn('草稿解析失败', e)
-      localStorage.removeItem('patrolPlanDraft') // 清除损坏的草稿
-    }
-  }
-}
-
-// ================== 监听内容变化自动保存 ==================
-watch(
-  () => ({
-    currentStep: currentStep.value,
-    selectedRegionId: selectedRegionId.value,
-    selectedProjectId: selectedProjectId.value,
-    selectedNodes: selectedNodes.value,
-    formData: { ...formData },
-    selectedCompanyId: selectedCompanyId.value,
-    personnelList: [...personnelList.value],
-    selectedDocuments: [...selectedDocuments.value]
-  }),
-  () => {
-    // 防抖优化：避免频繁保存
-    clearTimeout(window.draftSaveTimer)
-    window.draftSaveTimer = setTimeout(() => {
-      saveDraft()
-    }, 3000) // 3秒无操作后自动保存
-  },
-  { deep: true }
-)
-
 const getProjects = async () => {
   try {
     const response = await listZone()
     const list = response.data || response.rows || []
-    // 构建树结构
     zoneTreeData.value = proxy.handleTree(list, "id", "pid")
-    
-    // 如果有草稿中的选中节点，且树组件已渲染，则尝试恢复选中状态
-    // 注意：由于是异步加载，可能需要 nextTick 或 watch
-    if (selectedNodes.value.length > 0 && scopeTreeRef.value) {
-       // 这里简单尝试，实际可能需要等待 nextTick
-       proxy.$nextTick(() => {
-         if (scopeTreeRef.value) {
-           scopeTreeRef.value.setCheckedNodes(selectedNodes.value)
-         }
-       })
-    }
   } catch (error) {
     console.error('Failed to load projects:', error)
   }
 }
 
-// ================== 生命周期 ==================
-// 组件挂载时加载草稿
-onMounted(() => {
-  loadDraft()
-  getProjects()
-  getCompanies()
+const initData = async (id) => {
+  try {
+    const res = await getPlan(id)
+    const data = res.data
+    
+    formData.planName = data.name
+    formData.inspector = data.inspector
+    formData.status = data.status || '0'
+    
+    if (data.schedule) {
+       formData.startTime = data.schedule.startTime
+       formData.endTime = data.schedule.endTime
+       formData.inspectionCycle = data.schedule.cycle
+    }
+    
+    if (data.project) {
+       // Need to ensure zoneTreeData is loaded
+       selectedRegionId.value = data.project.pid
+       selectedProjectId.value = data.project.id
+    }
+    
+    if (data.areas) {
+       selectedNodes.value = data.areas.map(a => ({
+          id: a.id,
+          zname: a.name,
+          zonetype: a.level
+       }))
+       // Restore tree check
+       if (scopeTreeRef.value) {
+          scopeTreeRef.value.setCheckedNodes(selectedNodes.value)
+       }
+    }
+    
+    if (data.company) {
+       selectedCompanyId.value = data.company.id
+    }
+    
+    if (data.personnel) {
+       personnelList.value = data.personnel.map(p => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,
+          status: 'online', 
+          companyId: data.company.id,
+          assignedAreas: p.assignedAreas.map(a => ({
+             id: a.id,
+             name: a.name,
+             level: a.level
+          }))
+       }))
+    }
+    
+    if (data.documents) {
+       selectedDocuments.value = data.documents.map(d => ({
+          id: d.id,
+          title: d.title,
+          location: d.location
+       }))
+       // Also add to allDocuments so they appear in list if step is visited
+       data.documents.forEach(doc => {
+          if (!allDocuments.value.some(d => d.id === doc.id)) {
+            allDocuments.value.push(doc)
+          }
+       })
+    }
+    
+  } catch (e) {
+    console.error("Failed to init plan data", e)
+  }
+}
+
+onMounted(async () => {
+  await getProjects()
+  await getCompanies()
+  if (props.planId) {
+    await initData(props.planId)
+  }
 })
 </script>
 

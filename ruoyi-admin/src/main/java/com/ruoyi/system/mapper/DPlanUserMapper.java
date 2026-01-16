@@ -1,6 +1,9 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+
+import com.ruoyi.common.annotation.AutoFill;
+import com.ruoyi.common.enums.OperationType;
 import com.ruoyi.system.domain.DPlanUser;
 
 /**
@@ -33,6 +36,7 @@ public interface DPlanUserMapper
      * @param dPlanUser 计划用户关联
      * @return 结果
      */
+    @AutoFill(value = OperationType.INSERT)
     public int insertDPlanUser(DPlanUser dPlanUser);
 
     /**
@@ -41,6 +45,7 @@ public interface DPlanUserMapper
      * @param dPlanUser 计划用户关联
      * @return 结果
      */
+    @AutoFill(value = OperationType.UPDATE)
     public int updateDPlanUser(DPlanUser dPlanUser);
 
     /**

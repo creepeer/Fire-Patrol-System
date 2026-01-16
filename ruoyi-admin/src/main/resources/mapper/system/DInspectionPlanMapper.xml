@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.DInspectionPlanMapper">
-    
+
     <resultMap type="DInspectionPlan" id="DInspectionPlanResult">
         <result property="id"    column="id"    />
         <result property="projectId"    column="project_id"    />
         <result property="deptId"    column="dept_id"    />
         <result property="name"    column="name"    />
+        <result property="cycle"    column="cycle"    />
+        <result property="inspectorId"    column="inspector_id"    />
         <result property="startTime"    column="start_time"    />
         <result property="endTime"    column="end_time"    />
+        <result property="status"    column="status"    />
         <result property="creator"    column="creator"    />
         <result property="creatorTime"    column="creator_time"    />
         <result property="modifier"    column="modifier"    />
@@ -18,24 +21,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectDInspectionPlanVo">
-        select id, project_id, dept_id, name, start_time, end_time, creator, creator_time, modifier, modifier_time from d_inspection_plan
+        select id, project_id, dept_id, name, cycle, inspector_id, start_time, end_time, status, creator, creator_time, modifier, modifier_time from d_inspection_plan
     </sql>
 
     <select id="selectDInspectionPlanList" parameterType="DInspectionPlan" resultMap="DInspectionPlanResult">
         <include refid="selectDInspectionPlanVo"/>
-        <where>  
+        <where>
             <if test="projectId != null "> and project_id = #{projectId}</if>
             <if test="deptId != null "> and dept_id = #{deptId}</if>
             <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="cycle != null  and cycle != ''"> and cycle = #{cycle}</if>
+            <if test="inspectorId != null "> and inspector_id = #{inspectorId}</if>
             <if test="startTime != null "> and start_time = #{startTime}</if>
             <if test="endTime != null "> and end_time = #{endTime}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
             <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
             <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
             <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
             <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
         </where>
     </select>
-    
+
     <select id="selectDInspectionPlanById" parameterType="Long" resultMap="DInspectionPlanResult">
         <include refid="selectDInspectionPlanVo"/>
         where id = #{id}
@@ -47,24 +53,30 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="projectId != null">project_id,</if>
             <if test="deptId != null">dept_id,</if>
             <if test="name != null and name != ''">name,</if>
+            <if test="cycle != null and cycle != ''">cycle,</if>
+            <if test="inspectorId != null">inspector_id,</if>
             <if test="startTime != null">start_time,</if>
             <if test="endTime != null">end_time,</if>
+            <if test="status != null and status != ''">status,</if>
             <if test="creator != null">creator,</if>
             <if test="creatorTime != null">creator_time,</if>
             <if test="modifier != null">modifier,</if>
             <if test="modifierTime != null">modifier_time,</if>
-         </trim>
+        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="projectId != null">#{projectId},</if>
             <if test="deptId != null">#{deptId},</if>
             <if test="name != null and name != ''">#{name},</if>
+            <if test="cycle != null and cycle != ''">#{cycle},</if>
+            <if test="inspectorId != null">#{inspectorId},</if>
             <if test="startTime != null">#{startTime},</if>
             <if test="endTime != null">#{endTime},</if>
+            <if test="status != null and status != ''">#{status},</if>
             <if test="creator != null">#{creator},</if>
             <if test="creatorTime != null">#{creatorTime},</if>
             <if test="modifier != null">#{modifier},</if>
             <if test="modifierTime != null">#{modifierTime},</if>
-         </trim>
+        </trim>
     </insert>
 
     <update id="updateDInspectionPlan" parameterType="DInspectionPlan">
@@ -73,8 +85,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="projectId != null">project_id = #{projectId},</if>
             <if test="deptId != null">dept_id = #{deptId},</if>
             <if test="name != null and name != ''">name = #{name},</if>
+            <if test="cycle != null and cycle != ''">cycle = #{cycle},</if>
+            <if test="inspectorId != null">inspector_id = #{inspectorId},</if>
             <if test="startTime != null">start_time = #{startTime},</if>
             <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
             <if test="creator != null">creator = #{creator},</if>
             <if test="creatorTime != null">creator_time = #{creatorTime},</if>
             <if test="modifier != null">modifier = #{modifier},</if>
@@ -88,7 +103,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <delete id="deleteDInspectionPlanByIds" parameterType="String">
-        delete from d_inspection_plan where id in 
+        delete from d_inspection_plan where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>

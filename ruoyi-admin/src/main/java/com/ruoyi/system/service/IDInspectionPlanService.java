@@ -1,6 +1,8 @@
 package com.ruoyi.system.service;
 
 import java.util.List;
+
+import com.ruoyi.system.DTO.Inspection.InspectionPlanDTO;
 import com.ruoyi.system.domain.DInspectionPlan;
 
 /**
@@ -30,10 +32,10 @@ public interface IDInspectionPlanService
     /**
      * 新增检测计划管理
      * 
-     * @param dInspectionPlan 检测计划管理
+     * @param dto 检测计划管理
      * @return 结果
      */
-    public int insertDInspectionPlan(DInspectionPlan dInspectionPlan);
+    public int insertDInspectionPlan(InspectionPlanDTO dto);
 
     /**
      * 修改检测计划管理
@@ -58,4 +60,6 @@ public interface IDInspectionPlanService
      * @return 结果
      */
     public int deleteDInspectionPlanById(Long id);
+
+    List<InspectionPlanDTO> selectPlanList(DInspectionPlan dto);
 }

@@ -2,29 +2,24 @@
   <div class="app-container">
     <transition name="fade-transform" mode="out-in">
       <div v-if="currentView === 'list'" key="list">
-        <el-card class="box-card mb-10" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="font-bold"><el-icon class="mr-1"><Search /></el-icon>筛选查询</span>
-            </div>
-          </template>
-          <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="80px">
+        <el-card shadow="never" class="mb-10">
+          <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
             <el-row :gutter="20">
               <el-col :md="6" :sm="12">
-                <el-form-item label="项目ID" prop="projectId" class="w-full">
+                <el-form-item label="项目id" prop="projectId" class="w-full">
                   <el-input
                     v-model="queryParams.projectId"
-                    placeholder="请输入项目ID"
+                    placeholder="请输入项目id"
                     clearable
                     @keyup.enter="handleQuery"
                   />
                 </el-form-item>
               </el-col>
               <el-col :md="6" :sm="12">
-                <el-form-item label="公司ID" prop="deptId" class="w-full">
+                <el-form-item label="公司id" prop="deptId" class="w-full">
                   <el-input
                     v-model="queryParams.deptId"
-                    placeholder="请输入公司ID"
+                    placeholder="请输入公司id"
                     clearable
                     @keyup.enter="handleQuery"
                   />
@@ -131,36 +126,38 @@
             </el-col>
           </el-row>
 
-          <el-table v-loading="loading" :data="planList" @selection-change="handleSelectionChange" border stripe>
+          <el-table v-loading="loading" :data="planList" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="编号" align="center" prop="id" width="80" />
-            <el-table-column label="项目ID" align="center" prop="projectId" />
-            <el-table-column label="公司ID" align="center" prop="deptId" />
-            <el-table-column label="计划名称" align="center" prop="name" min-width="150" show-overflow-tooltip />
-            <el-table-column label="开始时间" align="center" prop="startTime" width="120">
+            <el-table-column label="id" align="center" prop="id" />
+            <el-table-column label="项目名称" align="center" prop="project.zname" />
+            <el-table-column label="公司名称" align="center" prop="company.name" />
+            <el-table-column label="计划名称" align="center" prop="name" />
+            <el-table-column label="开始时间" align="center" prop="schedule.startTime" width="180">
               <template #default="scope">
-                <span>{{ parseTime(scope.row.startTime, '{y}-{m}-{d}') }}</span>
+                <span>{{ parseTime(scope.row.schedule?.startTime, '{y}-{m}-{d}') }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="结束时间" align="center" prop="endTime" width="120">
+            <el-table-column label="结束时间" align="center" prop="schedule.endTime" width="180">
               <template #default="scope">
-                <span>{{ parseTime(scope.row.endTime, '{y}-{m}-{d}') }}</span>
+                <span>{{ parseTime(scope.row.schedule?.endTime, '{y}-{m}-{d}') }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="创建者" align="center" prop="creator" />
-            <el-table-column label="创建时间" align="center" prop="creatorTime" width="120">
-              <template #default="scope">
-                <span>{{ parseTime(scope.row.creatorTime, '{y}-{m}-{d}') }}</span>
-              </template>
+            <el-table-column label="状态" align="center" prop="status">
+               <template #default="scope">
+                  <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">
+                    {{ scope.row.status === '0' ? '正常' : '停用' }}
+                  </el-tag>
+               </template>
             </el-table-column>
-            <el-table-column label="操作" align="center" class-name="small-padding fixed-width" width="150">
+            <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
               <template #default="scope">
+                <el-button link type="primary" icon="View" @click="handlePreview(scope.row)">预览</el-button>
                 <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:plan:edit']">修改</el-button>
                 <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:plan:remove']">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
-          
+
           <pagination
             v-show="total>0"
             :total="total"
@@ -169,93 +166,141 @@
             @pagination="getList"
           />
         </el-card>
-
-        <!-- 修改检测计划管理对话框 (保留原逻辑用于修改) -->
-        <el-dialog :title="title" v-model="open" width="500px" append-to-body>
-          <el-form ref="planRef" :model="form" :rules="rules" label-width="80px">
-            <el-form-item label="项目id" prop="projectId">
-              <el-input v-model="form.projectId" placeholder="请输入项目id" />
-            </el-form-item>
-            <el-form-item label="公司id" prop="deptId">
-              <el-input v-model="form.deptId" placeholder="请输入公司id" />
-            </el-form-item>
-            <el-form-item label="计划名称" prop="name">
-              <el-input v-model="form.name" placeholder="请输入计划名称" />
-            </el-form-item>
-            <el-form-item label="开始时间" prop="startTime">
-              <el-date-picker clearable
-                v-model="form.startTime"
-                type="date"
-                value-format="YYYY-MM-DD"
-                placeholder="请选择开始时间">
-              </el-date-picker>
-            </el-form-item>
-            <el-form-item label="结束时间" prop="endTime">
-              <el-date-picker clearable
-                v-model="form.endTime"
-                type="date"
-                value-format="YYYY-MM-DD"
-                placeholder="请选择结束时间">
-              </el-date-picker>
-            </el-form-item>
-            <el-form-item label="创建者" prop="creator">
-              <el-input v-model="form.creator" placeholder="请输入创建者" />
-            </el-form-item>
-            <el-form-item label="创建时间" prop="creatorTime">
-              <el-date-picker clearable
-                v-model="form.creatorTime"
-                type="date"
-                value-format="YYYY-MM-DD"
-                placeholder="请选择创建时间">
-              </el-date-picker>
-            </el-form-item>
-            <el-form-item label="修改者" prop="modifier">
-              <el-input v-model="form.modifier" placeholder="请输入修改者" />
-            </el-form-item>
-            <el-form-item label="修改时间" prop="modifierTime">
-              <el-date-picker clearable
-                v-model="form.modifierTime"
-                type="date"
-                value-format="YYYY-MM-DD"
-                placeholder="请选择修改时间">
-              </el-date-picker>
-            </el-form-item>
-          </el-form>
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button type="primary" @click="submitForm">确 定</el-button>
-              <el-button @click="cancel">取 消</el-button>
-            </div>
-          </template>
-        </el-dialog>
       </div>
 
       <div v-else-if="currentView === 'add'" key="add">
         <plan-add @save="handleAddSave" @cancel="handleAddCancel" />
       </div>
+
+      <div v-else-if="currentView === 'edit'" key="edit">
+        <plan-edit :planId="currentPlanId" @save="handleEditSave" @cancel="handleEditCancel" />
+      </div>
     </transition>
+
+    <!-- 预览弹窗 -->
+    <el-dialog title="检测计划预览" v-model="previewOpen" width="800px" append-to-body>
+      <div v-if="previewData">
+        <el-descriptions :column="2" border>
+           <el-descriptions-item label="计划名称">{{ previewData.name }}</el-descriptions-item>
+           <el-descriptions-item label="项目名称">{{ previewData.project?.zname }}</el-descriptions-item>
+           <el-descriptions-item label="巡检负责人">{{ previewData.inspector }}</el-descriptions-item>
+           <el-descriptions-item label="巡检公司">{{ previewData.company?.name }}</el-descriptions-item>
+           <el-descriptions-item label="开始时间">{{ formatDateTime(previewData.schedule?.startTime) }}</el-descriptions-item>
+           <el-descriptions-item label="结束时间">{{ formatDateTime(previewData.schedule?.endTime) }}</el-descriptions-item>
+           <el-descriptions-item label="计划状态">
+              <el-tag :type="previewData.status === '0' ? 'success' : 'info'">
+                {{ previewData.status === '0' ? '正常' : '停用' }}
+              </el-tag>
+           </el-descriptions-item>
+        </el-descriptions>
+        
+        <el-divider content-position="left">区域与人员</el-divider>
+        <el-table :data="previewData.personnel || []" style="width: 100%" border size="small">
+          <el-table-column label="巡检人员" width="120">
+             <template #default="scope">
+                <el-link type="primary" @click="handlePlanUserClick(scope.row.id)">{{ scope.row.name }}</el-link>
+             </template>
+          </el-table-column>
+          <el-table-column label="分配区域">
+             <template #default="scope">
+                <el-tag v-for="area in scope.row.assignedAreas" :key="area.id" class="mr-1 mb-1" size="small">
+                  {{ area.name }}
+                </el-tag>
+             </template>
+          </el-table-column>
+        </el-table>
+
+        <el-divider content-position="left">相关文档</el-divider>
+        <el-table :data="previewData.documents || []" style="width: 100%" border size="small">
+           <el-table-column label="文件名称">
+              <template #default="scope">
+                 <el-link type="primary" @click="handlePlanContentlibClick(scope.row.id)">{{ scope.row.title }}</el-link>
+              </template>
+           </el-table-column>
+           <el-table-column label="查看">
+              <template #default="scope">
+                 <el-link type="primary" :href="getFullLocation(scope.row.location)" target="_blank">下载/查看</el-link>
+              </template>
+           </el-table-column>
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="previewOpen = false">关 闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 计划用户详情弹窗 -->
+    <el-dialog title="人员信息" v-model="planUserOpen" width="500px" append-to-body>
+      <el-descriptions :column="1" border v-if="planUserData">
+        <el-descriptions-item label="姓名">{{ planUserData.name }}</el-descriptions-item>
+        <el-descriptions-item label="电话">{{ planUserData.phone }}</el-descriptions-item>
+        <el-descriptions-item label="备注">{{ planUserData.remark }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="planUserOpen = false">关 闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 计划文档详情弹窗 -->
+    <el-dialog title="文件信息" v-model="planContentlibOpen" width="500px" append-to-body>
+      <el-descriptions :column="1" border v-if="planContentlibData">
+        <el-descriptions-item label="文件名称">{{ planContentlibData.title }}</el-descriptions-item>
+        <el-descriptions-item label="文件路径">{{ planContentlibData.location }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="planContentlibOpen = false">关 闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Plan">
 import { listPlan, getPlan, delPlan, addPlan, updatePlan } from "@/api/system/plan"
+import { getPlanUser } from "@/api/system/planUser"
+import { getPlanContentlib } from "@/api/system/planContentlib"
 import PlanAdd from './add.vue'
+import PlanEdit from './edit.vue'
+import { getCurrentInstance, reactive, ref, toRefs } from "vue"
 
 const { proxy } = getCurrentInstance()
+const baseUrl = import.meta.env.VITE_APP_BASE_API
 
 const planList = ref([])
-const open = ref(false)
 const loading = ref(true)
 const showSearch = ref(true)
 const ids = ref([])
 const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
-const title = ref("")
-const currentView = ref('list') // list, add
+const currentView = ref('list') // list, add, edit
+const currentPlanId = ref(null)
+
+const previewOpen = ref(false)
+const previewData = ref(null)
+
+const planUserOpen = ref(false)
+const planUserData = ref({})
+
+const planContentlibOpen = ref(false)
+const planContentlibData = ref({})
+
+function handlePlanUserClick(id) {
+  if (!id) return;
+  getPlanUser(id).then(response => {
+    planUserData.value = response.data
+    planUserOpen.value = true
+  })
+}
+
+function handlePlanContentlibClick(id) {
+  if (!id) return;
+  getPlanContentlib(id).then(response => {
+    planContentlibData.value = response.data
+    planContentlibOpen.value = true
+  })
+}
 
 const data = reactive({
-  form: {},
   queryParams: {
     pageNum: 1,
     pageSize: 10,
@@ -268,27 +313,10 @@ const data = reactive({
     creatorTime: null,
     modifier: null,
     modifierTime: null
-  },
-  rules: {
-    projectId: [
-      { required: true, message: "项目id不能为空", trigger: "blur" }
-    ],
-    deptId: [
-      { required: true, message: "公司id不能为空", trigger: "blur" }
-    ],
-    name: [
-      { required: true, message: "计划名称不能为空", trigger: "blur" }
-    ],
-    startTime: [
-      { required: true, message: "开始时间不能为空", trigger: "blur" }
-    ],
-    endTime: [
-      { required: true, message: "结束时间不能为空", trigger: "blur" }
-    ],
   }
 })
 
-const { queryParams, form, rules } = toRefs(data)
+const { queryParams } = toRefs(data)
 
 /** 查询检测计划管理列表 */
 function getList() {
@@ -298,29 +326,6 @@ function getList() {
     total.value = response.total
     loading.value = false
   })
-}
-
-// 取消按钮
-function cancel() {
-  open.value = false
-  reset()
-}
-
-// 表单重置
-function reset() {
-  form.value = {
-    id: null,
-    projectId: null,
-    deptId: null,
-    name: null,
-    startTime: null,
-    endTime: null,
-    creator: null,
-    creatorTime: null,
-    modifier: null,
-    modifierTime: null
-  }
-  proxy.resetForm("planRef")
 }
 
 /** 搜索按钮操作 */
@@ -359,34 +364,24 @@ function handleAddCancel() {
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
-  reset()
-  const _id = row.id || ids.value
-  getPlan(_id).then(response => {
-    form.value = response.data
-    open.value = true
-    title.value = "修改检测计划管理"
-  })
+  const _id = row.id || ids.value[0]
+  if (!_id) {
+    proxy.$modal.msgWarning("请选择一条记录")
+    return
+  }
+  currentPlanId.value = _id
+  currentView.value = 'edit'
 }
 
-/** 提交按钮 */
-function submitForm() {
-  proxy.$refs["planRef"].validate(valid => {
-    if (valid) {
-      if (form.value.id != null) {
-        updatePlan(form.value).then(response => {
-          proxy.$modal.msgSuccess("修改成功")
-          open.value = false
-          getList()
-        })
-      } else {
-        addPlan(form.value).then(response => {
-          proxy.$modal.msgSuccess("新增成功")
-          open.value = false
-          getList()
-        })
-      }
-    }
-  })
+function handleEditSave() {
+  currentView.value = 'list'
+  currentPlanId.value = null
+  getList()
+}
+
+function handleEditCancel() {
+  currentView.value = 'list'
+  currentPlanId.value = null
 }
 
 /** 删除按钮操作 */
@@ -405,6 +400,30 @@ function handleExport() {
   proxy.download('system/plan/export', {
     ...queryParams.value
   }, `plan_${new Date().getTime()}.xlsx`)
+}
+
+function handlePreview(row) {
+  loading.value = true
+  getPlan(row.id).then(response => {
+    previewData.value = response.data
+    previewOpen.value = true
+    loading.value = false
+  }).catch(() => {
+    loading.value = false
+  })
+}
+
+function formatDateTime(datetime) {
+  if (!datetime) return '未设置'
+  return datetime.replace('T', ' ')
+}
+
+function getFullLocation(path) {
+  if (!path) return ""
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path
+  }
+  return baseUrl + path
 }
 
 getList()

@@ -2,6 +2,8 @@ package com.ruoyi.system.controller;
 
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
+
+import com.ruoyi.system.DTO.Inspection.InspectionPlanDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,10 +41,10 @@ public class DInspectionPlanController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('system:plan:list')")
     @GetMapping("/list")
-    public TableDataInfo list(DInspectionPlan dInspectionPlan)
+    public TableDataInfo list(DInspectionPlan dto)  // 直接使用实体类作为参数
     {
         startPage();
-        List<DInspectionPlan> list = dInspectionPlanService.selectDInspectionPlanList(dInspectionPlan);
+        List<InspectionPlanDTO> list = dInspectionPlanService.selectPlanList(dto);
         return getDataTable(list);
     }
 
@@ -75,9 +77,9 @@ public class DInspectionPlanController extends BaseController
     @PreAuthorize("@ss.hasPermi('system:plan:add')")
     @Log(title = "检测计划管理", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody DInspectionPlan dInspectionPlan)
+    public AjaxResult add(@RequestBody InspectionPlanDTO dto)
     {
-        return toAjax(dInspectionPlanService.insertDInspectionPlan(dInspectionPlan));
+        return toAjax(dInspectionPlanService.insertDInspectionPlan(dto));
     }
 
     /**
