@@ -61,5 +61,13 @@ public interface IDInspectionPlanService
      */
     public int deleteDInspectionPlanById(Long id);
 
+    /**
+     * 列表查询巡检计划（只包含基本信息）
+     */
     List<InspectionPlanDTO> selectPlanList(DInspectionPlan dto);
+
+    /**
+     * 详情查询巡检计划（包含区域、人员、文档）
+     */
+    InspectionPlanDTO selectPlanDetail(Long id);
 }

@@ -68,7 +68,7 @@ public class DInspectionPlanController extends BaseController
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {
-        return success(dInspectionPlanService.selectDInspectionPlanById(id));
+        return success(dInspectionPlanService.selectPlanDetail(id));
     }
 
     /**

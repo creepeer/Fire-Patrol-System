@@ -6,40 +6,10 @@
           <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
             <el-row :gutter="20">
               <el-col :md="6" :sm="12">
-                <el-form-item label="项目id" prop="projectId" class="w-full">
-                  <el-input
-                    v-model="queryParams.projectId"
-                    placeholder="请输入项目id"
-                    clearable
-                    @keyup.enter="handleQuery"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :md="6" :sm="12">
-                <el-form-item label="公司id" prop="deptId" class="w-full">
-                  <el-input
-                    v-model="queryParams.deptId"
-                    placeholder="请输入公司id"
-                    clearable
-                    @keyup.enter="handleQuery"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :md="6" :sm="12">
                 <el-form-item label="计划名称" prop="name" class="w-full">
                   <el-input
                     v-model="queryParams.name"
                     placeholder="请输入计划名称"
-                    clearable
-                    @keyup.enter="handleQuery"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :md="6" :sm="12">
-                <el-form-item label="创建者" prop="creator" class="w-full">
-                  <el-input
-                    v-model="queryParams.creator"
-                    placeholder="请输入创建者"
                     clearable
                     @keyup.enter="handleQuery"
                   />
@@ -128,7 +98,6 @@
 
           <el-table v-loading="loading" :data="planList" @selection-change="handleSelectionChange">
             <el-table-column type="selection" width="55" align="center" />
-            <el-table-column label="id" align="center" prop="id" />
             <el-table-column label="项目名称" align="center" prop="project.zname" />
             <el-table-column label="公司名称" align="center" prop="company.name" />
             <el-table-column label="计划名称" align="center" prop="name" />

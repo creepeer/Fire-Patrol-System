@@ -36,6 +36,16 @@
             </el-select>
           </div>
 
+          <!-- 搜索输入框 -->
+          <div class="tree-search">
+            <el-input
+              v-model="filterText"
+              placeholder="输入关键字进行过滤"
+              clearable
+              prefix-icon="Search"
+            />
+          </div>
+
           <!-- 树形菜单容器 - 添加滚动区域 -->
           <div class="tree-container" ref="treeContainerRef">
             <el-tree
@@ -46,6 +56,7 @@
               highlight-current
               :expand-on-click-node="false"
               :default-expand-all="isExpandAll"
+              :filter-node-method="filterNode"
               @node-click="handleTreeNodeClick"
               class="zone-tree scrollable-tree"
               ref="treeRef"
@@ -115,14 +126,7 @@
         <div class="top-actions">
           <div class="left-actions">
             <el-form :model="queryParams" ref="queryRef" :inline="true" class="search-form">
-              <el-form-item>
-                <el-input
-                  v-model="queryParams.zname"
-                  placeholder="请输入区域名称"
-                  clearable
-                  style="width: 200px"
-                />
-              </el-form-item>
+
               <el-form-item>
                 <el-select
                   v-model="queryParams.zonetype"
@@ -852,8 +856,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, getCurrentInstance, nextTick, computed, onMounted } from 'vue'
-import { Plus, Edit, Delete, InfoFilled, Picture, Location, OfficeBuilding, House, Top, Bottom, Sort } from '@element-plus/icons-vue'
+import { ref, reactive, getCurrentInstance, nextTick, computed, onMounted, watch } from 'vue'
+import { Plus, Edit, Delete, InfoFilled, Picture, Location, OfficeBuilding, House, Top, Bottom, Sort, Search } from '@element-plus/icons-vue'
 import { listZone, getZone, delZone, addZone, updateZone, addProject, addBuilding, addRoom,
          listProjectByZoneId, listBuildingByProjectId, listRoomByBuildingId  } from "@/api/system/zone"
 import { listDeviceByZoneId } from "@/api/system/device"
@@ -872,10 +876,20 @@ const title = ref("")
 const isExpandAll = ref(true)
 const currentNode = ref(null) // 当前选中的节点
 const selectedTopRegion = ref(null) // 选中的顶级区域（现在存储中文名称）
+const filterText = ref('')
 
 // 添加滚动相关的ref
 const treeContainerRef = ref(null)
 const treeRef = ref(null)
+
+watch(filterText, (val) => {
+  treeRef.value.filter(val)
+})
+
+const filterNode = (value, data) => {
+  if (!value) return true
+  return data.zname.indexOf(value) !== -1
+}
 
 // 详情数据
 const projectDetail = ref(null)
@@ -1926,7 +1940,12 @@ onMounted(() => {
 }
 
 .top-region-selector {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.tree-search {
+  margin-bottom: 8px;
   padding: 0 8px;
 }
 
