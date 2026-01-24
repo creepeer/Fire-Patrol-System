@@ -3,7 +3,10 @@ package com.ruoyi.web.controller.system;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
+
+import com.ruoyi.system.DTO.User.GetPersonCenterDTO;
 import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -113,6 +116,36 @@ public class SysUserController extends BaseController
         List<SysRole> roles = roleService.selectRoleAll();
         ajax.put("roles", SysUser.isAdmin(userId) ? roles : roles.stream().filter(r -> !r.isAdmin()).collect(Collectors.toList()));
         ajax.put("posts", postService.selectPostAll());
+        return ajax;
+    }
+    /*
+    获取个人中心信息
+    */
+    @GetMapping(value = { "/person/{userId}" })
+    public AjaxResult getPersonCenter(@PathVariable(value = "userId", required = false) Long userId)
+    {
+        AjaxResult ajax = AjaxResult.success();
+        if (StringUtils.isNotNull(userId))
+        {
+
+            SysUser sysUser = userService.selectUserById(userId);
+            SysDept sysDept = deptService.selectDeptById(sysUser.getDeptId());
+
+            GetPersonCenterDTO person=new GetPersonCenterDTO();
+            person.setUserId(userId);
+            person.setUserName(sysUser.getUserName());
+            person.setUserEmail(sysUser.getEmail());
+            person.setDeptId(sysDept.getDeptId());
+            person.setDeptCode(sysDept.getCreditCode());
+            person.setDeptFax(sysDept.getFax());
+            person.setDeptLocation(sysDept.getAddress());
+            person.setDeptType(sysDept.getDeptType());
+            person.setDeptName(sysDept.getDeptName());
+            person.setDeptEmail(sysDept.getEmail());
+
+            ajax.put(AjaxResult.DATA_TAG,person);
+        }
+
         return ajax;
     }
 

@@ -134,3 +134,11 @@ export function deptTreeSelect() {
     method: 'get'
   })
 }
+
+// 获取个体中心信息
+export function getPersonCenter(userId) {
+  return request({
+    url: '/system/user/person/' + parseStrEmpty(userId),
+    method: 'get'
+  })
+}
