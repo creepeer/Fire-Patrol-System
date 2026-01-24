@@ -186,35 +186,35 @@
             <!-- 定时任务-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-quartz</artifactId>
+                <artifactId>ami-quartz</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 代码生成-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-generator</artifactId>
+                <artifactId>ami-generator</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 核心模块-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-framework</artifactId>
+                <artifactId>ami-framework</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 系统模块-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-system</artifactId>
+                <artifactId>ami-system</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 通用工具-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-common</artifactId>
+                <artifactId>ami-common</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
@@ -222,12 +222,12 @@
     </dependencyManagement>
 
     <modules>
-        <module>ruoyi-admin</module>
-        <module>ruoyi-framework</module>
-        <module>ruoyi-system</module>
-        <module>ruoyi-quartz</module>
-        <module>ruoyi-generator</module>
-        <module>ruoyi-common</module>
+        <module>ami-admin</module>
+        <module>ami-framework</module>
+        <module>ami-system</module>
+        <module>ami-quartz</module>
+        <module>ami-generator</module>
+        <module>ami-common</module>
     </modules>
     <packaging>pom</packaging>
 

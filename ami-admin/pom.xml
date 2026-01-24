@@ -46,19 +46,19 @@
         <!-- 核心模块-->
         <dependency>
             <groupId>com.ruoyi</groupId>
-            <artifactId>ruoyi-framework</artifactId>
+            <artifactId>ami-framework</artifactId>
         </dependency>
 
         <!-- 定时任务-->
         <dependency>
             <groupId>com.ruoyi</groupId>
-            <artifactId>ruoyi-quartz</artifactId>
+            <artifactId>ami-quartz</artifactId>
         </dependency>
 
         <!-- 代码生成-->
         <dependency>
             <groupId>com.ruoyi</groupId>
-            <artifactId>ruoyi-generator</artifactId>
+            <artifactId>ami-generator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

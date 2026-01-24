@@ -1,13 +1,13 @@
 # 项目相关配置
 ruoyi:
   # 名称
-  name: RuoYi
+  name: AMI
   # 版本
   version: 3.9.0
   # 版权年份
   copyrightYear: 2025
   # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
-  profile: D:/ruoyi/uploadPath
+  profile: D:/AMI/uploadPath
   # 获取ip地址开关
   addressEnabled: false
   # 验证码类型 math 数字计算 char 字符验证
@@ -16,7 +16,9 @@ ruoyi:
 # 开发环境配置
 server:
   # 服务器的HTTP端口，默认为8080
+  #port:9090
   port: 8080
+  address:
   servlet:
     # 应用的访问路径
     context-path: /
