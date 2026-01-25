@@ -16,3 +16,20 @@ export function getPlanUser(id) {
     method: 'get'
   })
 }
+
+// 修改计划用户关联
+export function updatePlanUser(data) {
+  return request({
+    url: '/system/planUser',
+    method: 'put',
+    data: data
+  })
+}
+
+// 根据区域ID获取计划设备信息
+export function listPlanUserByZoneId(zoneId) {
+  return request({
+    url: '/system/planUser/planByZoneId/' + zoneId,
+    method: 'get'
+  })
+}

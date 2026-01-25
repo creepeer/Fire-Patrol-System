@@ -48,6 +48,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         AND deleted = 0
         ORDER BY id DESC
     </select>
+    <select id="selectCDevicePlanByZoneId" parameterType="Long" resultMap="CDeviceResult">
+        <include refid="selectCDeviceVo"/>
+        WHERE deleted = 0
+        AND (
+
+        (#{zoneId} = zone_id3)
+        OR
+
+        (#{zoneId} = zone_id2 AND zone_id3 IS NULL)
+        OR
+
+        (#{zoneId} = zone_id1 AND zone_id2 IS NULL AND zone_id3 IS NULL)
+        )
+        ORDER BY id DESC
+    </select>
     <select id="selectCDeviceList" parameterType="CDevice" resultMap="CDeviceResult">
         <include refid="selectCDeviceVo"/>
         <where>  

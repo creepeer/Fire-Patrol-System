@@ -108,5 +108,11 @@ public class CDeviceController extends BaseController
         List<CDevice> list = cDeviceService.selectCDeviceByZoneId(zoneId);
         return success(list);
     }
+    @GetMapping("/planByZoneId/{zoneId}")
+    public AjaxResult planByZoneId(@PathVariable("zoneId") Long zoneId)
+    {
+        List<CDevice> list = cDeviceService.selectCDevicePlanByZoneId(zoneId);
+        return success(list);
+    }
 
 }

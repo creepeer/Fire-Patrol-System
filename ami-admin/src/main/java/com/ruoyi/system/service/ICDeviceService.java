@@ -62,4 +62,6 @@ public interface ICDeviceService
     public int deleteCDeviceById(Long id);
 
     List<CDevice> selectCDeviceByZoneId(Long zoneId);
+
+    List<CDevice> selectCDevicePlanByZoneId(Long zoneId);
 }

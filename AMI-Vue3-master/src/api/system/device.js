@@ -49,3 +49,11 @@ export function listDeviceByZoneId(zoneId) {
   })
 }
 
+// 根据区域ID获取设备及检测计划信息
+export function listDevicePlanByZoneId(zoneId) {
+  return request({
+    url: '/system/device/planByZoneId/' + zoneId,
+    method: 'get'
+  })
+}
+

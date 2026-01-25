@@ -9,7 +9,7 @@ import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
  * 计划用户关联对象 d_plan_user
- * 
+ *
  * @author lelandcat
  * @date 2026-01-14
  */
@@ -32,13 +32,21 @@ public class DPlanUser extends BaseEntity
     @Excel(name = "负责区域id")
     private Long zoneId;
 
-    /** 修改者 */
-    @Excel(name = "修改者")
+    /** 检测状态 */
+    @Excel(name = "检测状态")
+    private String status;
+
+    /** 检测备注 */
+    @Excel(name = "检测备注")
+    private String remark;
+
+    /** 创建者 */
+    @Excel(name = "创建者")
     private String creator;
 
-    /** 修改时间 */
+    /** 创建时间 */
     @JsonFormat(pattern = "yyyy-MM-dd")
-    @Excel(name = "修改时间", width = 30, dateFormat = "yyyy-MM-dd")
+    @Excel(name = "创建时间", width = 30, dateFormat = "yyyy-MM-dd")
     private Date creatorTime;
 
     /** 修改者 */
@@ -50,82 +58,102 @@ public class DPlanUser extends BaseEntity
     @Excel(name = "修改时间", width = 30, dateFormat = "yyyy-MM-dd")
     private Date modifierTime;
 
-    public void setId(Long id) 
+    public void setId(Long id)
     {
         this.id = id;
     }
 
-    public Long getId() 
+    public Long getId()
     {
         return id;
     }
 
-    public void setPlanId(Long planId) 
+    public void setPlanId(Long planId)
     {
         this.planId = planId;
     }
 
-    public Long getPlanId() 
+    public Long getPlanId()
     {
         return planId;
     }
 
-    public void setUserId(Long userId) 
+    public void setUserId(Long userId)
     {
         this.userId = userId;
     }
 
-    public Long getUserId() 
+    public Long getUserId()
     {
         return userId;
     }
 
-    public void setZoneId(Long zoneId) 
+    public void setZoneId(Long zoneId)
     {
         this.zoneId = zoneId;
     }
 
-    public Long getZoneId() 
+    public Long getZoneId()
     {
         return zoneId;
     }
 
-    public void setCreator(String creator) 
+    public void setStatus(String status)
+    {
+        this.status = status;
+    }
+
+    public String getStatus()
+    {
+        return status;
+    }
+
+    public void setRemark(String remark)
+    {
+        this.remark = remark;
+    }
+
+    public String getRemark()
+    {
+        return remark;
+    }
+
+    public void setCreator(String creator)
     {
         this.creator = creator;
     }
 
-    public String getCreator() 
+    public String getCreator()
     {
         return creator;
     }
 
-    public void setCreatorTime(Date creatorTime) 
+    public void setCreatorTime(Date creatorTime)
     {
         this.creatorTime = creatorTime;
     }
 
-    public Date getCreatorTime() 
+    public Date getCreatorTime()
     {
         return creatorTime;
     }
 
-    public void setModifier(String modifier) 
+    public void setModifier(String modifier)
     {
         this.modifier = modifier;
     }
 
-    public String getModifier() 
+    public String getModifier()
     {
         return modifier;
     }
 
-    public void setModifierTime(Date modifierTime) 
+    public void setModifierTime(Date modifierTime)
     {
         this.modifierTime = modifierTime;
     }
 
-    public Date getModifierTime() 
+    public Date getModifierTime()
     {
         return modifierTime;
     }
@@ -133,14 +161,16 @@ public class DPlanUser extends BaseEntity
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
-            .append("id", getId())
-            .append("planId", getPlanId())
-            .append("userId", getUserId())
-            .append("zoneId", getZoneId())
-            .append("creator", getCreator())
-            .append("creatorTime", getCreatorTime())
-            .append("modifier", getModifier())
-            .append("modifierTime", getModifierTime())
-            .toString();
+                .append("id", getId())
+                .append("planId", getPlanId())
+                .append("userId", getUserId())
+                .append("zoneId", getZoneId())
+                .append("status", getStatus())
+                .append("remark", getRemark())
+                .append("creator", getCreator())
+                .append("creatorTime", getCreatorTime())
+                .append("modifier", getModifier())
+                .append("modifierTime", getModifierTime())
+                .toString();
     }
 }

@@ -60,4 +60,6 @@ public interface CDeviceMapper
     public int deleteCDeviceByIds(Long[] ids);
 
     List<CDevice> selectCDeviceByZoneId(Long zoneId);
+
+    List<CDevice> selectCDevicePlanByZoneId(Long zoneId);
 }
