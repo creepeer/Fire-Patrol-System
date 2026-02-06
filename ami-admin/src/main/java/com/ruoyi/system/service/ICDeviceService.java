@@ -32,7 +32,7 @@ public interface ICDeviceService
     /**
      * 新增设施设备
      * 
-     * @param cDevice 设施设备
+     * @param Date 设施设备
      * @return 结果
      */
     public int insertCDevice(AddDeviceDTO Date);

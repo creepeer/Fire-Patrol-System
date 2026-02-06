@@ -64,7 +64,8 @@ public class AliyunOSSOperator {
         //生成一个新的不重复的文件名
         String newFileName = UUID.randomUUID() + originalFilename.substring(originalFilename.lastIndexOf("."));
         String objectName = dir + "/" + newFileName;
-
+        log.info("id{}",accessKeyId);
+        log.info("key{}",accessKeySecret);
         OSS ossClient = createOssClient();
         try {
             ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(content));

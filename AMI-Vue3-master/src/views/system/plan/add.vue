@@ -65,18 +65,30 @@
               <template #header>
                 <span>已选区域预览</span>
               </template>
-              <div style="min-height: 100px; padding: 10px; border: 1px dashed #dcdfe6; border-radius: 4px;">
+              <div style="min-height: 100px; padding: 10px; border: 1px dashed #dcdfe6; border-radius: 4px; overflow: auto; max-height: 400px;">
                 <el-empty v-if="selectedNodes.length === 0" description="请从左侧勾选需要巡检的区域" :image-size="60"></el-empty>
-                <el-tag
-                  v-for="node in selectedNodes"
-                  :key="node.id"
-                  closable
-                  @close="removeNode(node)"
-                  style="margin: 5px;"
-                  type="info"
+                <el-tree
+                  v-else
+                  :data="selectedTreeData"
+                  :props="{ label: 'zname', children: 'children' }"
+                  node-key="id"
+                  default-expand-all
+                  :expand-on-click-node="false"
                 >
-                  {{ node.zname }}
-                </el-tag>
+                  <template #default="{ node, data }">
+                    <span class="custom-tree-node" style="display: flex; justify-content: space-between; width: 100%; align-items: center; padding-right: 10px;">
+                      <span>{{ node.label }}</span>
+                      <el-button 
+                        v-if="selectedNodes.some(n => n.id === data.id)" 
+                        link 
+                        type="danger" 
+                        @click.stop="removeNode(data)" 
+                        icon="Delete" 
+                        style="padding: 2px;"
+                      />
+                    </span>
+                  </template>
+                </el-tree>
               </div>
             </el-card>
 
@@ -230,24 +242,26 @@
                  
                  <el-divider content-position="left">区域选择</el-divider>
                  
-                 <div class="area-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;">
-                    <div 
-                      v-for="area in selectedAreas" 
-                      :key="area.id" 
-                      class="area-item p-10 border rounded"
-                      :class="{ 'bg-blue-50 border-blue-200': getAssignedOtherPerson(area.id) }"
+                 <div class="area-tree-container" style="border: 1px solid #dcdfe6; border-radius: 4px; padding: 10px; max-height: 400px; overflow-y: auto;">
+                    <el-tree
+                      ref="personnelAreaTreeRef"
+                      :data="selectedTreeData"
+                      :props="{ label: 'zname', children: 'children' }"
+                      node-key="id"
+                      show-checkbox
+                      default-expand-all
+                      :expand-on-click-node="false"
+                      @check="handlePersonnelTreeCheck"
                     >
-                      <el-checkbox 
-                        :model-value="isAreaAssignedToPersonnel(area.id)"
-                        @change="(val) => toggleAreaAssignment(area.id, val)"
-                      >
-                        {{ area.name }}
-                      </el-checkbox>
-                      <div class="text-xs text-gray ml-20">{{ area.path }}</div>
-                      <div v-if="getAssignedOtherPerson(area.id)" class="text-xs text-blue-500 ml-20 mt-5">
-                         已分配给: {{ getAssignedOtherPerson(area.id).name }}
-                      </div>
-                    </div>
+                      <template #default="{ node, data }">
+                        <span class="custom-tree-node">
+                          <span>{{ node.label }}</span>
+                          <span v-if="getAssignedOtherPerson(data.id)" class="text-xs text-blue-500 ml-10">
+                             (已分配给: {{ getAssignedOtherPerson(data.id).name }})
+                          </span>
+                        </span>
+                      </template>
+                    </el-tree>
                  </div>
                  
                  <el-divider content-position="left" class="mt-20">已分配区域</el-divider>
@@ -367,7 +381,7 @@
         <el-descriptions title="计划概览" :column="2" border>
            <el-descriptions-item label="计划名称">{{ formData.planName }}</el-descriptions-item>
            <el-descriptions-item label="计划编号">{{ generatePlanCode() }}</el-descriptions-item>
-           <el-descriptions-item label="项目名称">{{ selectedProject?.name }}</el-descriptions-item>
+           <el-descriptions-item label="项目名称">{{ selectedProject?.zname || selectedProject?.name }}</el-descriptions-item>
            <el-descriptions-item label="巡检负责人">{{ formData.inspector }}</el-descriptions-item>
            <el-descriptions-item label="开始时间">{{ formatDateTime(formData.startTime) }}</el-descriptions-item>
            <el-descriptions-item label="结束时间">{{ formatDateTime(formData.endTime) }}</el-descriptions-item>
@@ -379,6 +393,47 @@
               </el-tag>
            </el-descriptions-item>
         </el-descriptions>
+
+        <el-card shadow="never" class="mt-20">
+           <template #header>
+             <span>人员区域分配概览</span>
+           </template>
+           <div v-if="personnelList.length > 0">
+              <div v-for="person in personnelList.filter(p => p.assignedAreas.length > 0)" :key="person.id" class="mb-10">
+                 <div class="font-bold mb-5">{{ person.name }} ({{ person.role }})</div>
+                 <div class="pl-10" style="border: 1px solid #dcdfe6; border-radius: 4px; padding: 10px;">
+                    <el-tree
+                      :data="getPersonAreaTree(person)"
+                      :props="{ label: 'zname', children: 'children' }"
+                      default-expand-all
+                      :expand-on-click-node="false"
+                    >
+                      <template #default="{ node, data }">
+                         <span :class="{ 'text-primary font-bold': person.assignedAreas.some(a => a.id === data.id) }">
+                             {{ node.label }}
+                             <span v-if="person.assignedAreas.some(a => a.id === data.id)" class="text-xs ml-5 text-gray-400">(已分配)</span>
+                         </span>
+                      </template>
+                    </el-tree>
+                 </div>
+              </div>
+           </div>
+           <el-empty v-else description="暂无人员区域分配信息" :image-size="60"></el-empty>
+         </el-card>
+
+        <el-card shadow="never" class="mt-20">
+           <template #header>
+             <span>已选文档清单</span>
+           </template>
+           <div v-if="selectedDocuments.length > 0">
+              <el-table :data="selectedDocuments" style="width: 100%" size="small" border>
+                 <el-table-column label="文档名称" prop="title" />
+                 <el-table-column label="版本" prop="version" width="80" />
+                 <el-table-column label="类型" prop="fileType" width="80" />
+              </el-table>
+           </div>
+           <el-empty v-else description="暂无已选文档" :image-size="60"></el-empty>
+        </el-card>
         
         <div class="mt-20">
            <el-checkbox v-model="confirmations.agreement">我已阅读并同意《智巡科防巡检服务协议》</el-checkbox>
@@ -479,7 +534,7 @@ const formData = reactive({
   planName: '',
   inspector: '张三',
   inspectorPhone: '17593958392',
-  inspectionCycle: 'monthly',
+  inspectionCycle: '每月',
   customCycle: 30,
   startTime: '2024-07-28T08:00',
   endTime: '',
@@ -571,6 +626,46 @@ const selectedPersonnelId = ref(null)
 const selectedPersonnel = computed(() => {
   return personnelList.value.find(p => p.id === selectedPersonnelId.value)
 })
+
+const personnelAreaTreeRef = ref(null)
+
+// 监听选中人员变化，更新树勾选状态
+watch(selectedPersonnelId, (newVal) => {
+  if (newVal && personnelAreaTreeRef.value) {
+    nextTick(() => {
+      const person = personnelList.value.find(p => p.id === newVal)
+      if (person) {
+        personnelAreaTreeRef.value.setCheckedKeys(person.assignedAreas.map(a => a.id))
+      } else {
+        personnelAreaTreeRef.value.setCheckedKeys([])
+      }
+    })
+  }
+})
+
+// 处理人员区域树勾选变更
+const handlePersonnelTreeCheck = (data, { checkedNodes }) => {
+  if (!selectedPersonnel.value) return
+
+  // 获取当前已分配的ID集合
+  const currentAssignedIds = new Set(selectedPersonnel.value.assignedAreas.map(a => a.id))
+  // 获取树上勾选的ID集合
+  const newAssignedIds = new Set(checkedNodes.map(n => n.id))
+
+  // 找出新增的节点
+  for (const node of checkedNodes) {
+    if (!currentAssignedIds.has(node.id)) {
+      toggleAreaAssignment(node.id, true)
+    }
+  }
+
+  // 找出移除的节点
+  for (const area of selectedPersonnel.value.assignedAreas) {
+    if (!newAssignedIds.has(area.id)) {
+      toggleAreaAssignment(area.id, false)
+    }
+  }
+}
 
 // ================== 文档数据 ==================
 const knowledgeTreeData = ref([])
@@ -730,6 +825,54 @@ const selectedAreaCount = computed(() => {
   return selectedAreas.value.length
 })
 
+const selectedTreeData = computed(() => {
+  if (!selectedNodes.value.length) return []
+  
+  const selectedIds = new Set(selectedNodes.value.map(n => n.id))
+  
+  const traverse = (nodes) => {
+    const result = []
+    for (const node of nodes) {
+       const children = node.children ? traverse(node.children) : []
+       const isSelected = selectedIds.has(node.id)
+       
+       if (isSelected || children.length > 0) {
+         result.push({
+           ...node,
+           children: children
+         })
+       }
+    }
+    return result
+  }
+  
+  return traverse(filteredTreeData.value)
+})
+
+const getPersonAreaTree = (person) => {
+  const assignedIds = new Set(person.assignedAreas.map(a => a.id))
+  
+  const traverse = (nodes) => {
+    const result = []
+    for (const node of nodes) {
+      const children = node.children ? traverse(node.children) : []
+      // 只要该节点被分配，或者其子节点有被分配的，就显示该节点
+      const isAssigned = assignedIds.has(node.id)
+      
+      if (isAssigned || children.length > 0) {
+        result.push({
+          ...node,
+          children: children
+        })
+      }
+    }
+    return result
+  }
+  
+  // 基于已选区域的树结构进行筛选
+  return traverse(selectedTreeData.value)
+}
+
 // ================== 方法定义 ==================
 const setStep = (index) => {
   // 允许返回上一步
@@ -784,8 +927,10 @@ const handleProjectChange = (val) => {
   // 继承项目负责人信息
   const project = availableProjects.value.find(p => p.id === val)
   if (project) {
+    // 自动填充巡检负责人和电话
     formData.inspector = project.manager || ''
     formData.inspectorPhone = project.managerPhone || ''
+    console.log('已自动填充项目负责人信息:', project.manager, project.managerPhone)
   }
 }
 
@@ -811,8 +956,46 @@ const clearCompany = () => {
   selectedCompanyId.value = null
 }
 
-const selectPersonnel = (personnelId) => {
-  selectedPersonnelId.value = personnelId
+const selectPersonnel = (id) => {
+  selectedPersonnelId.value = id
+  // 更新树的选择状态
+  nextTick(() => {
+    if (personnelAreaTreeRef.value && selectedPersonnel.value) {
+      const assignedIds = selectedPersonnel.value.assignedAreas.map(a => a.id)
+      personnelAreaTreeRef.value.setCheckedKeys(assignedIds)
+    }
+  })
+}
+
+// 处理人员区域树选择
+const handlePersonnelAreaCheck = (data, { checkedKeys }) => {
+  if (!selectedPersonnel.value) return
+  
+  // 获取当前所有选中的节点ID
+  // 注意：checkedKeys 包含了所有选中的节点
+  // 我们需要对比当前 assignedAreas 和 checkedKeys 的差异
+  
+  const currentAssignedIds = selectedPersonnel.value.assignedAreas.map(a => a.id)
+  const newCheckedIds = checkedKeys
+  
+  // 找出新增的
+  const addedIds = newCheckedIds.filter(id => !currentAssignedIds.includes(id))
+  // 找出移除的
+  const removedIds = currentAssignedIds.filter(id => !newCheckedIds.includes(id))
+  
+  // 处理新增
+  addedIds.forEach(id => {
+    const area = selectedAreas.value.find(a => a.id === id)
+    if (area) {
+       toggleAreaAssignment(id, true)
+    }
+  })
+  
+  // 处理移除
+  removedIds.forEach(id => {
+    // 同样需要确保是有效区域（虽然后端逻辑可能不需要，但保持一致）
+    toggleAreaAssignment(id, false)
+  })
 }
 
 const getAssignedOtherPerson = (areaId) => {
@@ -865,11 +1048,21 @@ const assignAllAreas = () => {
   
   // 全部分配给当前人员
   selectedPersonnel.value.assignedAreas = [...selectedAreas.value]
+  
+  // 更新树视图
+  if (personnelAreaTreeRef.value) {
+    personnelAreaTreeRef.value.setCheckedKeys(selectedPersonnel.value.assignedAreas.map(a => a.id))
+  }
 }
 
 const clearAssignedAreas = () => {
   if (!selectedPersonnel.value) return
   selectedPersonnel.value.assignedAreas = []
+  
+  // 更新树视图
+  if (personnelAreaTreeRef.value) {
+    personnelAreaTreeRef.value.setCheckedKeys([])
+  }
 }
 
 const removeAreaAssignment = (areaId) => {
@@ -936,6 +1129,10 @@ const formatDateTime = (datetime) => {
 }
 
 const getCycleText = (cycle) => {
+  // 如果 cycle 已经是中文，直接返回
+  if (['每日', '每周', '每月', '每季度', '每年'].includes(cycle)) {
+    return cycle
+  }
   const texts = {
     daily: '每日',
     weekly: '每周',
@@ -1086,6 +1283,9 @@ const loadDraft = () => {
       // 修复草稿中可能存在的旧状态值导致数据库插入报错的问题
       if (formData.status !== '0' && formData.status !== '1') {
         formData.status = '0'
+      }
+      if (formData.inspectionCycle === 'monthly') {
+        formData.inspectionCycle = '每月'
       }
       selectedCompanyId.value = draftData.selectedCompanyId
       personnelList.value = draftData.personnelList || personnelList.value

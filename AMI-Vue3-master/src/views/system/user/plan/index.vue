@@ -80,39 +80,7 @@
           </div>
           
           <div v-else>
-            <!-- 区域操作栏 -->
-            <div class="zone-actions mb-4" style="text-align: right; padding: 10px 0;">
-              <el-button 
-                type="primary" 
-                @click="handleSubmitClick"
-              >
-                提交检测结果
-              </el-button>
-            </div>
-
-            <el-table v-loading="deviceLoading" :data="deviceList" style="width: 100%" border>
-              <el-table-column label="检测状态" width="100" align="center">
-                <template #default="scope">
-                  <el-checkbox v-model="scope.row.isChecked" @change="handleCheckChange(scope.row)">
-                    {{ scope.row.isChecked ? '已通过' : '未通过' }}
-                  </el-checkbox>
-                </template>
-              </el-table-column>
-              <el-table-column prop="name" label="设备名称" min-width="120" />
-              <el-table-column prop="deviceCode" label="设备编号" width="120" />
-              <el-table-column prop="categoryName" label="设备类别" width="120" />
-              <el-table-column prop="model" label="设备型号" width="120" />
-              <el-table-column prop="brand" label="品牌" width="120" />
-              <el-table-column prop="location" label="具体位置" min-width="150" show-overflow-tooltip />
-              <el-table-column prop="relatedlocation" label="关联位置" width="150" show-overflow-tooltip />
-              <el-table-column prop="deviceStatus" label="状态" width="100" align="center">
-                <template #default="scope">
-                  <el-tag :type="getDeviceStatusType(scope.row.deviceStatus)">
-                    {{ getDeviceStatusText(scope.row.deviceStatus) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
+             <!-- 列表已隐藏 -->
           </div>
         </el-card>
       </el-col>

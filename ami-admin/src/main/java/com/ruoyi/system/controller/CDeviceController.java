@@ -1,9 +1,19 @@
 package com.ruoyi.system.controller;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.ruoyi.system.DTO.Device.AddDeviceDTO;
+import com.ruoyi.web.controller.common.CommonController;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +44,7 @@ public class CDeviceController extends BaseController
 {
     @Autowired
     private ICDeviceService cDeviceService;
+
 
     /**
      * 查询设施设备列表
@@ -101,13 +112,18 @@ public class CDeviceController extends BaseController
     {
         return toAjax(cDeviceService.deleteCDeviceByIds(ids));
     }
-
+    /**
+     * 根据区域获取设备（包括子树所有设备）
+     */
     @GetMapping("/listByZoneId/{zoneId}")
     public AjaxResult listByZoneId(@PathVariable("zoneId") Long zoneId)
     {
         List<CDevice> list = cDeviceService.selectCDeviceByZoneId(zoneId);
         return success(list);
     }
+    /**
+     * 根据区域获取设备（仅仅包括叶子节点设备）
+     */
     @GetMapping("/planByZoneId/{zoneId}")
     public AjaxResult planByZoneId(@PathVariable("zoneId") Long zoneId)
     {

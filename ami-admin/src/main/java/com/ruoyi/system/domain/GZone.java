@@ -121,17 +121,15 @@ public class GZone extends TreeEntity
         return pid;
     }
 
-    public void setZonetype(Long zonetype) 
-    {
-        this.zonetype = zonetype;
-    }
-
-    public Long getZonetype() 
-    {
+    public Long getZonetype() {
         return zonetype;
     }
 
-    public void setPlanMap(String planMap) 
+    public void setZonetype(Long zonetype) {
+        this.zonetype = zonetype;
+    }
+
+    public void setPlanMap(String planMap)
     {
         this.planMap = planMap;
     }

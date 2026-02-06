@@ -38,8 +38,8 @@
               node-key="id"
               :props="treeProps"
               highlight-current
-              :expand-on-click-node="false"
-              :default-expand-all="true"
+              :expand-on-click-node="true"
+              accordion
               @node-click="handleNodeClick"
               class="inspection-tree"
             >
@@ -140,8 +140,8 @@
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="handleCancelAddItem">取消</el-button>
-          <el-button type="primary" @click="submitAddItem">确定</el-button>
+          <el-button @click="addSubjectDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitAddSubject">确定</el-button>
         </template>
       </el-dialog>
 
@@ -417,7 +417,7 @@ function openAddItem() {
     return
   }
   addItemForm.subjectId = selectedSubjectId.value
-  addItemForm.parentId = selectedSubjectId.value
+  addItemForm.parentId = (currentItem.value && currentItem.value.id) ? currentItem.value.id : selectedSubjectId.value
   addItemForm.name = ""
   addItemForm.requirements = ""
   addItemForm.method = ""

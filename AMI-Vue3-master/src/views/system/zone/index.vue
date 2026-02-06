@@ -54,7 +54,8 @@
               :props="treeProps"
               node-key="id"
               highlight-current
-              :expand-on-click-node="false"
+              :expand-on-click-node="true"
+              accordion
               :default-expand-all="isExpandAll"
               :filter-node-method="filterNode"
               @node-click="handleTreeNodeClick"
@@ -607,6 +608,7 @@
                 placeholder="请选择上级区域"
                 check-strictly
                 style="width: 100%"
+                @change="handleBuildingParentChange"
               />
             </el-form-item>
           </el-col>
@@ -860,6 +862,7 @@ import { ref, reactive, getCurrentInstance, nextTick, computed, onMounted, watch
 import { Plus, Edit, Delete, InfoFilled, Picture, Location, OfficeBuilding, House, Top, Bottom, Sort, Search } from '@element-plus/icons-vue'
 import { listZone, getZone, delZone, addZone, updateZone, addProject, addBuilding, addRoom,
          listProjectByZoneId, listBuildingByProjectId, listRoomByBuildingId  } from "@/api/system/zone"
+import { listDept } from "@/api/system/dept"
 import { listDeviceByZoneId } from "@/api/system/device"
 
 const { proxy } = getCurrentInstance()
@@ -873,7 +876,7 @@ const open = ref(false)
 const loading = ref(true)
 const showSearch = ref(true)
 const title = ref("")
-const isExpandAll = ref(true)
+const isExpandAll = ref(false)
 const currentNode = ref(null) // 当前选中的节点
 const selectedTopRegion = ref(null) // 选中的顶级区域（现在存储中文名称）
 const filterText = ref('')
@@ -913,40 +916,40 @@ const roomRef = ref()
 // 省市区选项（示例数据）
 const areaOptions = ref([
   {
-    value: 'beijing',
+    value: '北京市',
     label: '北京市',
     children: [
-      { value: 'dongcheng', label: '东城区' },
-      { value: 'xicheng', label: '西城区' },
-      { value: 'chaoyang', label: '朝阳区' },
-      { value: 'haidian', label: '海淀区' }
+      { value: '东城区', label: '东城区' },
+      { value: '西城区', label: '西城区' },
+      { value: '朝阳区', label: '朝阳区' },
+      { value: '海淀区', label: '海淀区' }
     ]
   },
   {
-    value: 'zhejiang',
+    value: '浙江省',
     label: '浙江省',
     children: [
       {
-        value: 'hangzhou',
+        value: '杭州市',
         label: '杭州市',
         children: [
           {
-            value: 'shangcheng',
+            value: '上城区',
             label: '上城区',
             children: [
-              { value: 'hubin', label: '湖滨街道' },
-              { value: 'qingbo', label: '清波街道' },
-              { value: 'xiaoying', label: '小营街道' },
-              { value: 'naxiang', label: '南星街道' },
-              { value: 'zhanongqiao', label: '闸弄口街道' },
-              { value: 'kaixuan', label: '凯旋街道' },
-              { value: 'caihe', label: '采荷街道' },
-              { value: 'qiantao', label: '钱塘街道' },
-              { value: 'dongzhan', label: '东站街道' },
-              { value: 'baiyang', label: '白杨街道' },
-              { value: 'jiubao', label: '九堡街道' },
-              { value: 'dinglan', label: '丁兰街道' },
-              { value: 'pengbu', label: '彭埠街道' }
+              { value: '湖滨街道', label: '湖滨街道' },
+              { value: '清波街道', label: '清波街道' },
+              { value: '小营街道', label: '小营街道' },
+              { value: '南星街道', label: '南星街道' },
+              { value: '闸弄口街道', label: '闸弄口街道' },
+              { value: '凯旋街道', label: '凯旋街道' },
+              { value: '采荷街道', label: '采荷街道' },
+              { value: '钱塘街道', label: '钱塘街道' },
+              { value: '东站街道', label: '东站街道' },
+              { value: '白杨街道', label: '白杨街道' },
+              { value: '九堡街道', label: '九堡街道' },
+              { value: '丁兰街道', label: '丁兰街道' },
+              { value: '彭埠街道', label: '彭埠街道' }
             ]
           },
           // ... 其他区域数据保持不变
@@ -962,19 +965,30 @@ const areaProps = {
   children: 'children'
 }
 
-// 委托单位选项（示例数据）
-const clientUnitOptions = ref([
-  { value: '特电', label: '特电' },
-  { value: '杭电', label: '杭电' },
-  { value: '大厂', label: '大厂' }
-])
+// 部门列表数据
+const deptList = ref([])
 
-// 分配人员选项（示例数据）
-const assignedPersonOptions = ref([
-  { value: '张三', label: '张三' },
-  { value: '李四', label: '李四' },
-  { value: '王五', label: '王五' }
-])
+// 委托单位选项
+const clientUnitOptions = ref([])
+
+// 分配人员选项
+const assignedPersonOptions = ref([])
+
+/** 查询部门列表 */
+function getDeptList() {
+  listDept().then(response => {
+    deptList.value = response.data
+    // 仅显示parentId为0的顶级公司
+    clientUnitOptions.value = response.data
+      .filter(item => item.parentId === 0)
+      .map(item => ({
+        value: item.deptName, // 使用名称作为值
+        label: item.deptName
+      }))
+  })
+}
+
+
 
 // 计算属性：获取顶级节点（pid为0的节点）
 const topLevelNodes = computed(() => {
@@ -1010,7 +1024,7 @@ const filteredTreeData = computed(() => {
         if (found) return found
       }
     }
-    return []
+    return null
   }
   
   return findNodeByName(zoneTreeData.value, selectedTopRegion.value) || []
@@ -1085,6 +1099,27 @@ const projectRules = {
     { required: true, message: "详细地址不能为空", trigger: "blur" }
   ]
 }
+
+// 监听委托单位变化，自动关联分配人员（公司leader）
+watch(() => projectForm.value.clientUnit, (newVal) => {
+  if (newVal) {
+    const dept = deptList.value.find(item => item.deptName === newVal && item.parentId === 0)
+    if (dept && dept.leader) {
+      assignedPersonOptions.value = [{
+        value: dept.leader,
+        label: dept.leader
+      }]
+      // 自动选中leader
+      projectForm.value.assignedPerson = dept.leader
+    } else {
+      assignedPersonOptions.value = []
+      projectForm.value.assignedPerson = ''
+    }
+  } else {
+    assignedPersonOptions.value = []
+    projectForm.value.assignedPerson = ''
+  }
+})
 
 // 楼栋表单数据
 const buildingForm = ref({
@@ -1464,9 +1499,16 @@ function handleTopRegionChange(regionName) {
 
 /** 添加项目按钮 */
 function handleAddProject() {
+  // 加载部门列表
+  getDeptList()
+
   // 根据中文名称找到对应的节点ID
   let currentPid = 1 // 默认值
-  if (selectedTopRegion.value) {
+  
+  // 优先使用当前选中的节点作为父节点
+  if (currentNode.value && currentNode.value.id) {
+    currentPid = currentNode.value.id
+  } else if (selectedTopRegion.value) {
     const findNodeIdByName = (nodes, name) => {
       for (const node of nodes) {
         if (node.zname === name) {
@@ -1491,24 +1533,117 @@ function handleAddProject() {
     address: '',
     clientUnit: '',
     assignedPerson: '',
-    pid: currentPid 
+    pid: currentPid,
+    zoneType: 0
   }
   projectOpen.value = true
 }
 
+/** 获取节点路径 */
+function getNodePath(nodes, id) {
+  for (const node of nodes) {
+    if (node.id === id) {
+      return [node]
+    }
+    if (node.children && node.children.length > 0) {
+      const childPath = getNodePath(node.children, id)
+      if (childPath) {
+        return [node, ...childPath]
+      }
+    }
+  }
+  return null
+}
+
+/** 解析区域名称为数组 */
+function parseAreaName(fullName) {
+  if (!fullName) return []
+  const result = []
+  let currentOptions = areaOptions.value
+  let remainingName = fullName
+  
+  // 限制最大深度防止死循环，一般省市区街道也就是4级
+  for (let i = 0; i < 5; i++) {
+    if (!currentOptions || !remainingName) break
+    
+    // 在当前层级中查找匹配的前缀
+    const match = currentOptions.find(opt => remainingName.startsWith(opt.label))
+    if (match) {
+      result.push(match.value)
+      remainingName = remainingName.slice(match.label.length)
+      currentOptions = match.children
+    } else {
+      break
+    }
+  }
+  
+  return result
+}
+
 /** 添加楼栋按钮 */
 function handleAddBuilding() {
+  // 加载上级区域树数据
+  getTreeselect()
+
+  // 优先使用当前选中的节点作为父节点（所属项目）
+  let currentProjectId = ''
+  let currentArea = []
+  let currentParentId = ''
+  
+  if (currentNode.value && currentNode.value.id) {
+    // 默认上级区域为当前选中节点
+    currentParentId = currentNode.value.id
+
+    // 如果是项目节点，设置 projectId
+    if (currentNode.value.zonetype === 1) {
+      currentProjectId = currentNode.value.id
+      // 尝试从项目详情获取区域
+      if (projectDetail.value) {
+        currentArea = [
+          projectDetail.value.province, 
+          projectDetail.value.city, 
+          projectDetail.value.district,
+          projectDetail.value.street
+        ].filter(Boolean)
+      }
+    }
+    
+    // 如果区域信息仍为空（可能是项目详情未加载，或者选中的不是项目节点），尝试从树结构推导
+    if (currentArea.length === 0) {
+      const path = getNodePath(zoneTreeData.value, currentNode.value.id)
+      if (path) {
+        // 如果是项目节点，路径的最后一个是项目本身，不应该包含在区域省市区中
+        // 如果是普通区域节点，路径本身就是区域
+        const isProject = currentNode.value.zonetype === 1
+        const relevantPath = isProject ? path.slice(0, -1) : path
+        
+        // 将路径上的所有 zname 拼接起来，然后解析
+        // 这样既支持分级存储的节点，也支持合并存储的节点（如自动生成的区域）
+        const fullAreaName = relevantPath.map(node => node.zname).join('')
+        const parsed = parseAreaName(fullAreaName)
+        
+        if (parsed && parsed.length > 0) {
+          currentArea = parsed
+        } else {
+          // 降级策略：如果解析失败，直接使用节点名称（可能无法在级联选择器显示，但至少有值）
+          currentArea = relevantPath.map(node => node.zname)
+        }
+      }
+    }
+  }
+
   buildingForm.value = {
     buildingName: '',
-    projectId: '',
-    parentZone: '',
-    area: [],
+    projectId: currentProjectId,
+    parentZone: currentParentId,
+    area: currentArea,
+    zoneType: 2,
     floorCount: 1,
     buildingHeight: '',
     buildingArea: '', 
     buildingType: '',
-    lng: '',
-    lat: '',
+    lng: currentNode.value ? (currentNode.value.lng || '') : '',
+    lat: currentNode.value ? (currentNode.value.lat || '') : '',
     usageType: '',
     address: '',
     remark: ''
@@ -1516,13 +1651,70 @@ function handleAddBuilding() {
   buildingOpen.value = true
 }
 
+/** 楼栋上级区域变化 */
+function handleBuildingParentChange(zoneId) {
+  if (!zoneId) return
+  
+  const node = findZoneById(zoneId)
+  if (!node) return
+
+  // 1. 继承省市区
+  const path = getNodePath(zoneTreeData.value, zoneId)
+  if (path) {
+    const isProject = node.zonetype === 1
+    const relevantPath = isProject ? path.slice(0, -1) : path
+    
+    const fullAreaName = relevantPath.map(n => n.zname).join('')
+    const parsed = parseAreaName(fullAreaName)
+    
+    if (parsed && parsed.length > 0) {
+      buildingForm.value.area = parsed
+    } else {
+      buildingForm.value.area = relevantPath.map(n => n.zname)
+    }
+  }
+
+  // 2. 继承经纬度
+  if (node.lng) buildingForm.value.lng = node.lng
+  if (node.lat) buildingForm.value.lat = node.lat
+  
+  // 3. 自动关联项目ID
+  let current = node
+  while (current) {
+    if (current.zonetype === 1) {
+      buildingForm.value.projectId = current.id
+      break
+    }
+    if (!current.pid || current.pid === 0) break
+    current = findZoneById(current.pid)
+  }
+}
+
 /** 添加房间按钮 */
 function handleAddRoom() {
+  // 优先使用当前选中的节点作为父节点
+  let currentParentId = null
+  let currentProjectId = ''
+  
+  if (currentNode.value && currentNode.value.id) {
+    // 如果选中的是楼栋，则自动填入所属项目
+    if (currentNode.value.zonetype === 2) {
+      currentProjectId = currentNode.value.pid
+      currentParentId = currentNode.value.id
+    } 
+    // 如果选中的是其他类型（如二级区域），也可作为父节点
+    else if (currentNode.value.zonetype === 3) {
+      // 尝试向上查找项目ID（这里简化处理，可能需要从树中递归查找）
+      currentParentId = currentNode.value.id
+      // currentProjectId 需要根据业务逻辑获取，这里暂不自动填充项目ID，除非能确定
+    }
+  }
+
   roomForm.value = {
     roomName: '',
-    projectId: '',
+    projectId: currentProjectId,
     roomType: '',
-    parentZoneId: null,
+    parentZoneId: currentParentId,
     parentZonePath: '',
     lng: '',
     lat: '',
@@ -1537,6 +1729,11 @@ function handleAddRoom() {
   // 加载房间上级区域树
   getRoomZoneTreeselect()
   roomOpen.value = true
+  
+  // 如果有选中的父节点，自动触发change事件以加载路径等信息
+  if (currentParentId) {
+    handleParentZoneChange(currentParentId)
+  }
 }
 
 /** 项目选择变化 */
@@ -1614,13 +1811,61 @@ function handleGpsLocation() {
 
 /** 提交项目表单 */
 function submitProjectForm() {
-  projectRef.value.validate(valid => {
+  projectRef.value.validate(async valid => {
     if (valid) {
-      addProject(projectForm.value).then(response => {
+      try {
+        // 处理自动添加区域逻辑
+        if (projectForm.value.area && projectForm.value.area.length > 0) {
+          // 1. 获取省市区名称组合（现在value就是中文）
+          const areaNames = projectForm.value.area
+          const areaName = areaNames.join('')
+          
+          // 设置省市区和区域描述
+          if (areaNames.length > 0) projectForm.value.province = areaNames[0]
+          if (areaNames.length > 1) projectForm.value.city = areaNames[1]
+          if (areaNames.length > 2) projectForm.value.district = areaNames[2]
+          if (areaNames.length > 3) projectForm.value.street = areaNames[3]
+          
+          projectForm.value.regionText = areaName
+          
+          if (areaName) {
+            // 2. 查询该区域是否存在
+            const res = await listZone({ zname: areaName })
+            const existingZone = res.data && res.data.find(z => z.zname === areaName)
+            
+            if (existingZone) {
+              // 如果存在，使用该区域ID作为pid
+              projectForm.value.pid = existingZone.id
+            } else {
+              // 如果不存在，添加新区域
+              const newZone = {
+                zname: areaName,
+                pid: 0, // 默认为顶级节点
+                zoneType: 0, // 默认为0
+                remark: '自动生成的区域'
+              }
+              await addZone(newZone)
+              
+              // 重新查询获取新生成的ID
+              const resAgain = await listZone({ zname: areaName })
+              const createdZone = resAgain.data && resAgain.data.find(z => z.zname === areaName)
+              if (createdZone) {
+                projectForm.value.pid = createdZone.id
+              }
+            }
+          }
+        }
+
+        // 提交项目
+        projectForm.value.zoneType = 0
+        await addProject(projectForm.value)
         proxy.$modal.msgSuccess("添加项目成功")
         projectOpen.value = false
         getList()
-      })
+      } catch (error) {
+        console.error('添加项目失败:', error)
+        proxy.$modal.msgError("添加项目失败")
+      }
     }
   })
 }
@@ -1867,6 +2112,7 @@ function handleDelete(row) {
 onMounted(() => {
   getList()
   getProjectList()
+  getTreeselect()
 })
 </script>
 

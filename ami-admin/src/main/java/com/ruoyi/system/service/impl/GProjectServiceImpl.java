@@ -65,6 +65,7 @@ public class GProjectServiceImpl implements IGProjectService
         gProject.setStreet(areaList.get(3));
         gProject.setContactPerson(Data.getAssignedPerson());
         gProject.setProjectCode(Data.getProjectCode());
+
         return gProjectMapper.insertGProject(gProject);
     }
 

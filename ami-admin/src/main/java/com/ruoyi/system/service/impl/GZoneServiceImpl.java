@@ -6,6 +6,8 @@ import com.ruoyi.system.DTO.Building.AddBuildingDTO;
 import com.ruoyi.system.DTO.Classroom.AddClassroomDTO;
 import com.ruoyi.system.DTO.Project.AddProjectDTO;
 import com.ruoyi.system.domain.GBuilding;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.system.mapper.GZoneMapper;
@@ -19,6 +21,7 @@ import com.ruoyi.system.service.IGZoneService;
  * @date 2025-10-02
  */
 @Service
+@Slf4j
 public class GZoneServiceImpl implements IGZoneService 
 {
     @Autowired
@@ -98,10 +101,10 @@ public class GZoneServiceImpl implements IGZoneService
     @Override
     public int insertGZoneProject(AddProjectDTO data){
         GZone gZone=new GZone();
+        BeanUtils.copyProperties(data,gZone);
         gZone.setZname(data.getProjectName());
         gZone.setZonetype(data.getZoneType());
         gZone.setManager(data.getAssignedPerson());
-        gZone.setPid(data.getPid());
         return  gZoneMapper.insertGZone(gZone);
     }
     @Override

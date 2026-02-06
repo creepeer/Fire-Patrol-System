@@ -180,6 +180,9 @@
                     <el-button link type="primary" size="small" icon="Edit" @click="handleUpdate(data)" v-hasPermi="['system:device:edit']">
                       修改
                     </el-button>
+                    <el-button link type="primary" size="small" icon="Picture" @click="handleViewQrCode(data)">
+                      二维码
+                    </el-button>
                     <el-button link type="primary" size="small" icon="Delete" @click="handleDelete(data)" v-hasPermi="['system:device:remove']">
                       删除
                     </el-button>
@@ -532,12 +535,37 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 二维码查看对话框 -->
+    <el-dialog title="设备二维码" v-model="qrCodeVisible" width="400px" append-to-body align-center>
+      <div class="qrcode-container" style="text-align: center; padding: 20px;">
+        <div v-if="currentQrUrl" class="qr-image">
+           <el-image 
+             :src="currentQrUrl" 
+             style="width: 200px; height: 200px"
+             fit="contain"
+             :preview-src-list="[currentQrUrl]"
+           >
+             <template #error>
+               <div class="image-error" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; background-color: #f5f7fa; color: #909399;">
+                 <el-icon size="40"><Picture /></el-icon>
+                 <div style="margin-top: 10px;">无法加载二维码</div>
+               </div>
+             </template>
+           </el-image>
+        </div>
+        <el-empty v-else description="暂无二维码信息" />
+        <div v-if="currentQrUrl" class="mt-10">
+           <el-link :href="currentQrUrl" target="_blank" type="primary">下载/查看原图</el-link>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, getCurrentInstance, computed, onMounted, nextTick, watch } from 'vue'
-import { Plus, Edit, Delete, InfoFilled, Folder, Document } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, InfoFilled, Folder, Document, Picture } from '@element-plus/icons-vue'
 import { listDevice, getDevice, delDevice, addDevice, updateDevice } from "@/api/system/device"
 import { listZone } from "@/api/system/zone"
 import { listCategory } from "@/api/system/category"
@@ -927,10 +955,21 @@ function handleProjectClick(project) {
 
 /** 区域选择变化 */
 function handleZoneChange(value) {
-  if (value && value.length >= 3) {
-    form.value.zoneId1 = value[0] || null
-    form.value.zoneId2 = value[1] || null
-    form.value.zoneId3 = value[2] || null
+  if (value && value.length > 0) {
+    const len = value.length
+    // 取最后三个（或少于三个）作为区域ID，确保层级关系：id1(根) -> id2 -> id3(叶)
+    // 例如：
+    // [A, B, C, D] -> 取[B, C, D] -> id1=B, id2=C, id3=D
+    // [A, B, C]    -> 取[A, B, C] -> id1=A, id2=B, id3=C
+    // [A, B]       -> 取[A, B]    -> id1=A, id2=B, id3=null
+    // [A]          -> 取[A]       -> id1=A, id2=null, id3=null
+    
+    const start = Math.max(0, len - 3)
+    const relevantIds = value.slice(start)
+    
+    form.value.zoneId1 = relevantIds.length > 0 ? relevantIds[0] : null
+    form.value.zoneId2 = relevantIds.length > 1 ? relevantIds[1] : null
+    form.value.zoneId3 = relevantIds.length > 2 ? relevantIds[2] : null
   } else {
     form.value.zoneId1 = null
     form.value.zoneId2 = null
@@ -1314,6 +1353,23 @@ const allowDrop = (draggingNode, dropNode, type) => {
   }
   
   return true
+}
+
+// ================== 二维码查看 ==================
+const qrCodeVisible = ref(false)
+const currentQrUrl = ref('')
+
+const handleViewQrCode = (row) => {
+  if (row.qrUrl) {
+    currentQrUrl.value = row.qrUrl
+    qrCodeVisible.value = true
+  } else if (row.qrCode && (row.qrCode.startsWith('http') || row.qrCode.startsWith('data:image'))) {
+    // 兼容 qrCode 字段存储 URL 的情况
+    currentQrUrl.value = row.qrCode
+    qrCodeVisible.value = true
+  } else {
+    ElMessage.warning('该设备暂无二维码信息')
+  }
 }
 
 // 初始化

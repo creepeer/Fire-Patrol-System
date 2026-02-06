@@ -131,7 +131,7 @@ public class GZoneController extends BaseController
     /**
      * 根据区域ID查询项目列表
      */
-    @PreAuthorize("@ss.hasPermi('system:project:list')")
+//    @PreAuthorize("@ss.hasPermi('system:project:list')")
     @GetMapping("/project/list/{zoneId}")
     public AjaxResult listProjectByZoneId(@PathVariable("zoneId") Long zoneId)
     {
@@ -141,12 +141,13 @@ public class GZoneController extends BaseController
     /**
      * 查询建筑列表
      */
-    @PreAuthorize("@ss.hasPermi('system:building:list')")
+//    @PreAuthorize("@ss.hasPermi('system:building:list')")
     @GetMapping("/building/list/{Pid}")
     public AjaxResult listBuildingByZoneId( @PathVariable("Pid") Long pid)
     {
 
       GBuilding list = gBuildingService.selectGBuildingByPid(pid);
+
         return success(list);
     }
 

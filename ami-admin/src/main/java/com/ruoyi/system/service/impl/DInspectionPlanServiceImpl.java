@@ -10,20 +10,11 @@ import java.util.Set;
 import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.system.DTO.Inspection.InspectionPlanDTO;
-import com.ruoyi.system.domain.DContentlib;
-import com.ruoyi.system.domain.DPlanContentlib;
-import com.ruoyi.system.domain.DPlanUser;
-import com.ruoyi.system.domain.GZone;
-import com.ruoyi.system.mapper.DContentlibMapper;
-import com.ruoyi.system.mapper.DInspectionPlanMapper;
-import com.ruoyi.system.mapper.DPlanContentlibMapper;
-import com.ruoyi.system.mapper.DPlanUserMapper;
-import com.ruoyi.system.mapper.GZoneMapper;
-import com.ruoyi.system.mapper.SysDeptMapper;
-import com.ruoyi.system.mapper.SysUserMapper;
+import com.ruoyi.system.domain.*;
+import com.ruoyi.system.mapper.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.system.domain.DInspectionPlan;
 import com.ruoyi.system.service.IDInspectionPlanService;
 
 /**
@@ -33,6 +24,7 @@ import com.ruoyi.system.service.IDInspectionPlanService;
  * @date 2026-01-14
  */
 @Service
+@Slf4j
 public class DInspectionPlanServiceImpl implements IDInspectionPlanService 
 {
     @Autowired
@@ -49,6 +41,10 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
     private SysUserMapper sysUserMapper;
     @Autowired
     private DContentlibMapper dContentlibMapper;
+    @Autowired
+    private DeviceScanMapper deviceScanMapper;
+    @Autowired
+    private CDeviceMapper cDeviceMapper;
 
 
     /**
@@ -86,7 +82,8 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
     {
         //计划表
         DInspectionPlan dInspectionPlan=new DInspectionPlan();
-        dInspectionPlan.setProjectId(dto.getProject().getId());
+        Long projectId=dto.getProject().getId();
+        dInspectionPlan.setProjectId(projectId);
         dInspectionPlan.setDeptId(dto.getCompany().getId());
         dInspectionPlan.setName(dto.getName());
         dInspectionPlan.setStartTime(dto.getSchedule().getStartTime());
@@ -97,10 +94,22 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
         //计划区域关联表
         for (InspectionPlanDTO.PersonnelInfo personnel : dto.getPersonnel()) {
             for (InspectionPlanDTO.PersonnelInfo.AssignedArea assignedArea : personnel.getAssignedAreas()) {
+                Long zoneId= assignedArea.getId();
+                List<CDevice> cDevices=cDeviceMapper.selectCDevicePlanByZoneId(zoneId);
+                log.info("cDevices:{}",cDevices.size());
+                for(CDevice device:cDevices){
+                    DeviceScan deviceScan= new DeviceScan();
+                    deviceScan.setDeviceId(device.getId());
+                    deviceScan.setZoneId(zoneId);
+                    deviceScan.setPlanId(dInspectionPlan.getId());
+                    deviceScan.setScanResult(1L);
+                    log.info("deviceScan{}",deviceScan);
+                    deviceScanMapper.insertDeviceScan(deviceScan);
+                }
                 DPlanUser dPlanUser = new DPlanUser();
                 dPlanUser.setPlanId(dInspectionPlan.getId());
                 dPlanUser.setUserId(personnel.getId());
-                dPlanUser.setZoneId(assignedArea.getId());
+                dPlanUser.setZoneId(zoneId);
                 // 插入关联记录
                 dPlanUserMapper.insertDPlanUser(dPlanUser);
             }
