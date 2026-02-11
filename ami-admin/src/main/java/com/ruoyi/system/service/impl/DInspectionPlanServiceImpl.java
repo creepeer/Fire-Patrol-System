@@ -98,20 +98,15 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
                 List<CDevice> cDevices=cDeviceMapper.selectCDevicePlanByZoneId(zoneId);
                 log.info("cDevices:{}",cDevices.size());
                 for(CDevice device:cDevices){
-                    DeviceScan deviceScan= new DeviceScan();
-                    deviceScan.setDeviceId(device.getId());
-                    deviceScan.setZoneId(zoneId);
-                    deviceScan.setPlanId(dInspectionPlan.getId());
-                    deviceScan.setScanResult(1L);
-                    log.info("deviceScan{}",deviceScan);
-                    deviceScanMapper.insertDeviceScan(deviceScan);
+                    DPlanUser planUser= new DPlanUser();
+                    planUser.setDeviceId(device.getId());
+                    planUser.setZoneId(zoneId);
+                    planUser.setPlanId(dInspectionPlan.getId());
+                    planUser.setStatus(0);
+                    planUser.setUserId(personnel.getId());
+                    log.info("deviceScan{}",planUser);
+                    dPlanUserMapper.insertDPlanUser(planUser);
                 }
-                DPlanUser dPlanUser = new DPlanUser();
-                dPlanUser.setPlanId(dInspectionPlan.getId());
-                dPlanUser.setUserId(personnel.getId());
-                dPlanUser.setZoneId(zoneId);
-                // 插入关联记录
-                dPlanUserMapper.insertDPlanUser(dPlanUser);
             }
         }
         //计划知识库关联表

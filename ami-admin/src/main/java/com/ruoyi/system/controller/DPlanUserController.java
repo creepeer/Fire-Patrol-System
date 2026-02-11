@@ -2,6 +2,8 @@ package com.ruoyi.system.controller;
 
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
  * @date 2026-01-14
  */
 @RestController
+@Slf4j
 @RequestMapping("/system/planUser")
 public class DPlanUserController extends BaseController
 {
@@ -88,6 +91,7 @@ public class DPlanUserController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody DPlanUser dPlanUser)
     {
+        log.info("dPlanUser{}",dPlanUser);
         return toAjax(dPlanUserService.updateDPlanUser(dPlanUser));
     }
 

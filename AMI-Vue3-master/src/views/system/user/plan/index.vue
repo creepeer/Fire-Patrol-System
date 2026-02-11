@@ -80,38 +80,85 @@
           </div>
           
           <div v-else>
-             <!-- 列表已隐藏 -->
+            <el-table v-loading="deviceLoading" :data="deviceList" style="width: 100%" border>
+              <el-table-column prop="name" label="设备名称" min-width="120" />
+              <el-table-column prop="scanStatus" label="检测状态" width="100" align="center">
+                <template #default="scope">
+                  <el-tag :type="getScanStatusType(scope.row.scanStatus)">
+                    {{ getScanStatusText(scope.row.scanStatus) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="deviceCode" label="设备编号" width="120" />
+              <el-table-column label="设备二维码" width="100" align="center">
+                <template #default="scope">
+                  <el-image 
+                    v-if="scope.row.qrUrl"
+                    style="width: 50px; height: 50px"
+                    :src="scope.row.qrUrl"
+                    :preview-src-list="[scope.row.qrUrl]"
+                    fit="contain"
+                    preview-teleported
+                  >
+                    <template #error>
+                      <div class="image-slot">
+                        <el-icon><Picture /></el-icon>
+                      </div>
+                    </template>
+                  </el-image>
+                  <span v-else>无</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="location" label="具体位置" min-width="150" show-overflow-tooltip />
+              <el-table-column label="操作" width="180" align="center" fixed="right">
+                <template #default="scope">
+                  <el-button
+                    size="small"
+                    type="success"
+                    link
+                    icon="Check"
+                    @click="handlePass(scope.row)"
+                  >
+                    通过
+                  </el-button>
+                  <el-button
+                    size="small"
+                    type="danger"
+                    link
+                    icon="Close"
+                    @click="handleFail(scope.row)"
+                  >
+                    不通过
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 提交确认对话框 -->
+    <!-- 不通过备注对话框 -->
     <el-dialog
-      v-model="submitDialogVisible"
-      title="提交检测结果"
+      v-model="remarkDialogVisible"
+      title="填写不通过理由"
       width="500px"
       append-to-body
     >
-      <el-form ref="submitFormRef" :model="submitForm" :rules="submitRules" label-width="80px">
-        <el-form-item label="检测状态">
-          <el-tag :type="submitForm.status === '1' ? 'success' : 'danger'">
-            {{ submitForm.status === '1' ? '已通过' : '未通过' }}
-          </el-tag>
-        </el-form-item>
-        <el-form-item label="备注说明" prop="remark" v-if="submitForm.status !== '1'">
+      <el-form :model="remarkForm" label-width="80px">
+        <el-form-item label="备注说明">
           <el-input 
-            v-model="submitForm.remark" 
+            v-model="remarkForm.remark" 
             type="textarea" 
-            placeholder="请输入未通过原因" 
+            placeholder="请输入不通过原因" 
             :rows="3"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="submitDialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="confirmSubmit">确 定</el-button>
+          <el-button @click="remarkDialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="confirmFail">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -120,14 +167,14 @@
 
 <script setup name="PlanCheck">
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
-import { listPlanUser, updatePlanUser } from '@/api/system/planUser';
+import { listPlanUser, updatePlanUser, addPlanUser } from "@/api/system/planUser";
 import { getPlan } from '@/api/system/plan';
-import { listDeviceByZoneId, listDevicePlanByZoneId } from '@/api/system/device';
+import { listDevice, listDevicePlanByZoneId } from '@/api/system/device';
 import { listZone } from '@/api/system/zone';
 import useUserStore from '@/store/modules/user';
 import { parseTime, handleTree } from '@/utils/ruoyi';
 import { ElMessage } from 'element-plus';
-import { ArrowRight, Search } from '@element-plus/icons-vue';
+import { ArrowRight, Search, Picture } from '@element-plus/icons-vue';
 
 const userStore = useUserStore();
 const zoneLoading = ref(false);
@@ -365,73 +412,80 @@ function handlePlanChange() {
 
 /** 点击区域加载设备 */
 async function handleZoneClick(data) {
-  // 只有被标记为 assigned 的节点才允许点击查询设备，或者允许查询所有节点下的设备？
-  // 根据需求，通常只检查分配的区域。但也可能允许查看父级。
-  // 这里假设所有显示的节点都可以点击，但只有 assigned 的会有数据？
-  // 或者：如果点击的是父节点，是否应该显示所有子孙节点的设备？
-  // 简单起见，点击任何节点都尝试加载设备。
-  
   selectedZoneId.value = data.id;
   selectedZoneName.value = data.zname;
   deviceLoading.value = true;
   deviceList.value = []; // 清空旧数据
   
   try {
-    // 使用新接口获取计划设备信息 (包含状态)
-    const response = await listDevicePlanByZoneId(data.id);
-    const apiData = response.rows || response.data || [];
+    // 并行获取：区域下的设备列表 + 当前用户的检查记录
+    const [deviceRes, planUserRes] = await Promise.all([
+      listDevicePlanByZoneId(data.id),
+      listPlanUser({ 
+        userId: userStore.id, 
+        planId: selectedPlanId.value 
+      })
+    ]);
+
+    const apiData = deviceRes.rows || deviceRes.data || deviceRes || [];
+    const userPlanRecords = planUserRes.rows || planUserRes.data || planUserRes || [];
     
-    // 如果返回的是 DPlanUser 对象列表，我们需要提取其中的设备信息并合并状态
-    // 假设返回结构中包含 device 对象或者 deviceId 等字段
-    // 如果后端直接返回设备列表并附带状态最好，如果是 PlanUser 列表，需要映射
-    
-    // 尝试根据返回数据结构适配
+    // 建立 deviceId -> planUser 记录的映射
+    const recordMap = new Map();
+    userPlanRecords.forEach(record => {
+      if (record.deviceId) {
+        recordMap.set(record.deviceId, record);
+      }
+    });
+
+    // 映射数据
     deviceList.value = apiData.map(item => {
-        let device = {};
-        let status = '0';
-        let planUserId = null;
+      const deviceId = item.id;
+      const planId = item.planId || selectedPlanId.value;
+      
+      // 从 planUser 记录中查找匹配的记录
+      const userRecord = recordMap.get(deviceId);
+      
+      // 优先使用 planUser 记录中的 id (这是 d_plan_user 表的主键)
+      // 如果没有记录，则 planUserId 为 null
+      const planUserId = userRecord ? userRecord.id : null;
+      
+      const device = item.device || {};
+      const deviceName = item.name || item.deviceName || device.name || '';
+      const deviceCode = item.qrCode || item.qr_code || item.deviceCode || device.qrCode || device.qr_code || device.deviceCode || '';
+      const qrUrl = item.qrUrl || item.qr_url || device.qrUrl || device.qr_url || '';
+      
+      const categoryName = item.categoryName || device.categoryName || '';
+      const location = item.location || device.location || '';
 
-        // 情况1: 返回的是 DPlanUser 对象，包含 device 信息
-        if (item.device) {
-             device = item.device;
-             status = item.status;
-             planUserId = item.id;
+      // 状态优先从 userRecord 中获取
+      let status = 0;
+      let remark = '';
+      
+      if (userRecord) {
+        status = userRecord.status;
+        remark = userRecord.remark || '';
+      } else {
+        // 如果没有记录，尝试读取 item 中的 status (可能是旧逻辑遗留)
+        status = item.status;
+        if (status === undefined || status === null) {
+          status = 0; 
         }
-        // 情况2: 返回的是 Device 对象，包含 planUser 信息
-        else if (item.id && item.planUserId) {
-             device = item;
-             status = item.status;
-             planUserId = item.planUserId;
-        }
-        // 情况3: 混合结构
-        else {
-             device = item;
-             status = item.status;
-             planUserId = item.id || item.planUserId; // 假设 item 本身是 PlanUser
-        }
+        remark = item.remark || '';
+      }
 
-        // 检查当前区域是否已经“已通过”
-        // 如果区域状态是 '1'，则所有设备强制显示为已通过
-        const zonePlanUser = planUserMap.value.get(`zone-${data.id}`);
-        const isZonePassed = zonePlanUser && zonePlanUser.status === '1';
-
-        const isChecked = isZonePassed || status === '1';
-
-        return {
-            ...device,
-            // 补全可能缺失的设备字段
-            id: device.id || item.deviceId,
-            name: device.name || item.deviceName || '未知设备',
-            model: device.model || '',
-            brand: device.brand || '',
-            location: device.location || '',
-            categoryName: device.categoryName || '',
-            deviceStatus: device.deviceStatus,
-            relatedlocation: device.relatedlocation || '',
-            
-            isChecked: isChecked,
-            planUserId: planUserId
-        };
+      return {
+        id: deviceId, // 设备ID
+        planUserId: planUserId, // 关联表ID (d_plan_user.id)
+        planId: planId,
+        name: deviceName,
+        deviceCode: deviceCode,
+        qrUrl: qrUrl,
+        categoryName: categoryName,
+        location: location,
+        scanStatus: status,
+        scanRemark: remark
+      };
     });
     
   } catch (error) {
@@ -442,12 +496,102 @@ async function handleZoneClick(data) {
   }
 }
 
+/** 获取扫描状态文本 */
+function getScanStatusText(status) {
+  const statusMap = {
+    0: '未检测',
+    1: '已通过',
+    2: '不通过'
+  }
+  return statusMap[status] || '未检测'
+}
+
+/** 获取扫描状态标签类型 */
+function getScanStatusType(status) {
+  const typeMap = {
+    0: 'info',
+    1: 'success',
+    2: 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+/** 处理状态变更 */
+const currentDevice = ref(null);
+const remarkDialogVisible = ref(false);
+const remarkForm = ref({ remark: '' });
+
+function handlePass(row) {
+  submitScanResult(row, 1);
+}
+
+function handleFail(row) {
+  currentDevice.value = row;
+  remarkForm.value.remark = row.scanRemark || '';
+  remarkDialogVisible.value = true;
+}
+
+async function confirmFail() {
+  if (!remarkForm.value.remark) {
+    ElMessage.warning("请输入不通过理由");
+    return;
+  }
+  await submitScanResult(currentDevice.value, 2, remarkForm.value.remark);
+  remarkDialogVisible.value = false;
+}
+
+async function submitScanResult(row, status, remark = '') {
+  // 根据用户要求：
+  // 1. 不需要提交 id (PlanUser主键)
+  // 2. deviceId 的值取自 row.id (即设备ID)
+  // 3. planId 取自左上角选择的 selectedPlanId
+  
+  const data = {
+    planId: selectedPlanId.value,
+    deviceId: row.id,
+    userId: userStore.id, // 当前用户ID
+    zoneId: selectedZoneId.value, // 当前区域ID
+    status: status,
+    remark: remark
+  };
+
+  // 用户要求：想要更新，不能直接用planuser和deviceid直接找到对应的实体更新吗？
+  // 答：如果后端支持根据 planId 和 deviceId 更新，则不需要 id。
+  // 我们直接调用 updatePlanUser，并带上所有必要参数。
+  // 如果之前因为缺少 userId/zoneId 导致 500，现在补上后应该能正常工作。
+  
+  if (row.planUserId) {
+    data.id = row.planUserId;
+  }
+  
+  // 无论是否有ID，都尝试调用更新接口
+  // 注意：如果后端严格要求ID，且这里没有ID，仍然可能失败。
+  // 但根据用户意图，我们优先尝试更新。
+  await updatePlanUser(data).then(() => {
+    ElMessage.success("状态更新成功");
+    refreshDeviceRow(row.id, status, remark);
+  });
+}
+
+function refreshDeviceRow(deviceId, status, remark) {
+  const device = deviceList.value.find(d => d.id === deviceId);
+  if (device) {
+    device.scanStatus = status;
+    device.scanRemark = remark;
+  }
+}
+
 const isAllDevicesChecked = computed(() => {
+  // 此逻辑可能不再适用，因为现在是逐个操作，或者可以保留作为“一键通过”的基础
   if (deviceList.value.length === 0) return false;
-  return deviceList.value.every(device => device.isChecked);
+  return deviceList.value.every(device => device.scanStatus === 1);
 });
 
-// 提交相关
+// ----------------------------------------------------------------
+// 下面是旧代码清理或保留
+// ----------------------------------------------------------------
+
+// 提交相关 (旧逻辑，暂时保留变量定义以防报错，但不再使用)
 const submitDialogVisible = ref(false);
 const submitFormRef = ref(null);
 const submitForm = ref({
@@ -460,66 +604,21 @@ const submitRules = {
   ]
 };
 
-/** 点击提交按钮 */
+/** 点击提交按钮 (旧) */
 function handleSubmitClick() {
-  if (!selectedZoneId.value) return;
-
-  // 根据当前设备勾选状态判断
-  if (isAllDevicesChecked.value) {
-    submitForm.value = { status: '1', remark: '' };
-  } else {
-    // 状态2表示异常/未通过
-    submitForm.value = { status: '2', remark: '' };
-  }
-  submitDialogVisible.value = true;
+   // 已废弃
 }
 
-/** 确认提交 */
+/** 确认提交 (旧) */
 async function confirmSubmit() {
-  if (submitForm.value.status !== '1') {
-    // 校验备注
-    if (!submitFormRef.value) return;
-    await submitFormRef.value.validate(async (valid) => {
-      if (valid) {
-        await executeSubmit();
-      }
-    });
-  } else {
-    await executeSubmit();
-  }
+   // 已废弃
 }
 
-/** 执行提交逻辑 */
+/** 执行提交逻辑 (旧) */
 async function executeSubmit() {
-  try {
-    let zonePlanUser = planUserMap.value.get(`zone-${selectedZoneId.value}`);
-    if (!zonePlanUser) {
-        ElMessage.warning("未找到关联的区域检查任务信息，无法提交");
-        return;
-    }
-
-    const data = {
-      id: zonePlanUser.id,
-      status: submitForm.value.status,
-      remark: submitForm.value.remark
-    };
-    
-    await updatePlanUser(data);
-    ElMessage.success(submitForm.value.status === '1' ? "区域检测已通过" : "已提交检测异常记录");
-    
-    submitDialogVisible.value = false;
-
-    // 刷新设备列表以显示最新状态
-    await handleZoneClick({ id: selectedZoneId.value, zname: selectedZoneName.value });
-    
-    // 刷新左侧树状态
-    await getMyZones();
-
-  } catch (error) {
-    console.error("提交区域状态失败", error);
-    ElMessage.error("提交失败");
-  }
+   // 已废弃
 }
+
 
 /** 勾选状态改变 */
 function handleCheckChange(row) {

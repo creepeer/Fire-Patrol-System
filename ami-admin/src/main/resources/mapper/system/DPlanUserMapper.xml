@@ -8,37 +8,134 @@
         <result property="id" column="id" />
         <result property="planId" column="plan_id" />
         <result property="userId" column="user_id" />
+        <result property="deviceId" column="device_id" />
         <result property="zoneId" column="zone_id" />
         <result property="status" column="status" />
         <result property="remark" column="remark" />
+        <result property="photos" column="photos" />
+        <result property="deleted" column="deleted" />
         <result property="creator" column="creator" />
         <result property="creatorTime" column="creator_time" />
         <result property="modifier" column="modifier" />
         <result property="modifierTime" column="modifier_time" />
+        <!-- 关联字段映射 -->
+        <result property="deviceName" column="device_name" />
+        <result property="deviceCode" column="device_code" />
+        <result property="zoneName" column="zone_name" />
+        <result property="userName" column="user_name" />
+        <result property="planName" column="plan_name" />
     </resultMap>
 
     <sql id="selectDPlanUserVo">
-        select id, plan_id, user_id, zone_id, status, remark, creator, creator_time, modifier, modifier_time from d_plan_user
+        select id, plan_id, user_id, device_id, zone_id, status, remark, photos, deleted, creator, creator_time, modifier, modifier_time from d_plan_user
+    </sql>
+
+    <sql id="selectDPlanUserWithJoinVo">
+        select
+            pu.id,
+            pu.plan_id,
+            pu.user_id,
+            pu.device_id,
+            pu.zone_id,
+            pu.status,
+            pu.remark,
+            pu.photos,
+            pu.deleted,
+            pu.creator,
+            pu.creator_time,
+            pu.modifier,
+            pu.modifier_time,
+            d.device_name,
+            d.device_code,
+            z.zone_name,
+            u.real_name as user_name,
+            p.plan_name
+        from d_plan_user pu
+                 left join c_device d on pu.device_id = d.id
+                 left join g_zone z on pu.zone_id = z.id
+                 left join sys_user u on pu.user_id = u.id
+                 left join d_inspection_plan p on pu.plan_id = p.id
     </sql>
 
     <select id="selectDPlanUserList" parameterType="DPlanUser" resultMap="DPlanUserResult">
         <include refid="selectDPlanUserVo"/>
         <where>
+            and deleted = 0  <!-- 默认只查未删除的 -->
             <if test="planId != null "> and plan_id = #{planId}</if>
             <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="deviceId != null "> and device_id = #{deviceId}</if>
             <if test="zoneId != null "> and zone_id = #{zoneId}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
-            <if test="remark != null  and remark != ''"> and remark = #{remark}</if>
+            <if test="status != null "> and status = #{status}</if>
+            <if test="remark != null  and remark != ''"> and remark like concat('%', #{remark}, '%')</if>
+            <if test="photos != null  and photos != ''"> and photos like concat('%', #{photos}, '%')</if>
             <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
-            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
+            <if test="creatorTime != null "> and date(creator_time) = date(#{creatorTime})</if>
             <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
-            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+            <if test="modifierTime != null "> and date(modifier_time) = date(#{modifierTime})</if>
         </where>
+        order by plan_id desc, status asc, modifier_time desc
     </select>
 
-    <select id="selectDPlanUserById" parameterType="Long" resultMap="DPlanUserResult">
+    <!-- 新增：查询用户的待检设备 -->
+    <select id="selectPendingByUser" resultMap="DPlanUserResult">
+        <include refid="selectDPlanUserWithJoinVo"/>
+        where pu.plan_id = #{planId}
+        and pu.user_id = #{userId}
+        and pu.status = 0
+        and pu.deleted = 0
+        order by pu.zone_id, pu.device_id
+    </select>
+
+    <!-- 新增：查询计划的检查进度 -->
+    <select id="selectByPlan" parameterType="Long" resultMap="DPlanUserResult">
+        <include refid="selectDPlanUserWithJoinVo"/>
+        where pu.plan_id = #{planId}
+        and pu.deleted = 0
+        order by pu.status, pu.zone_id, pu.device_id
+    </select>
+
+    <!-- 新增：按计划和设备查询 -->
+    <select id="selectByPlanAndDevice" resultMap="DPlanUserResult">
         <include refid="selectDPlanUserVo"/>
-        where id = #{id}
+        where plan_id = #{planId}
+        and device_id = #{deviceId}
+        and deleted = 0
+        limit 1
+    </select>
+
+    <!-- 新增：插入或更新检查状态（防重复核心方法） -->
+    <insert id="insertOrUpdateCheckStatus">
+        insert into d_plan_user
+        (plan_id, user_id, device_id, zone_id, status, remark, photos, creator, modifier)
+        values
+            (#{planId}, #{userId}, #{deviceId}, #{zoneId}, #{status}, #{remark}, #{photos}, #{creator}, #{modifier})
+        on duplicate key update
+                             status = values(status),
+                             remark = values(remark),
+                             photos = values(photos),
+                             modifier = values(modifier),
+                             modifier_time = now()
+    </insert>
+
+    <!-- 新增：批量更新检查状态 -->
+    <update id="batchUpdateCheckStatus">
+        update d_plan_user
+        set status = #{status},
+        remark = #{remark},
+        photos = #{photos},
+        modifier = #{modifier},
+        modifier_time = now()
+        where plan_id = #{planId}
+        and device_id in
+        <foreach item="deviceId" collection="deviceIds" open="(" separator="," close=")">
+            #{deviceId}
+        </foreach>
+        and deleted = 0
+    </update>
+
+    <select id="selectDPlanUserById" parameterType="Long" resultMap="DPlanUserResult">
+        <include refid="selectDPlanUserWithJoinVo"/>
+        where pu.id = #{id} and pu.deleted = 0
     </select>
 
     <insert id="insertDPlanUser" parameterType="DPlanUser" useGeneratedKeys="true" keyProperty="id">
@@ -46,24 +143,30 @@
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="planId != null">plan_id,</if>
             <if test="userId != null">user_id,</if>
+            <if test="deviceId != null">device_id,</if>
             <if test="zoneId != null">zone_id,</if>
             <if test="status != null">status,</if>
-            <if test="remark != null">remark,</if>
-            <if test="creator != null">creator,</if>
-            <if test="creatorTime != null">creator_time,</if>
-            <if test="modifier != null">modifier,</if>
-            <if test="modifierTime != null">modifier_time,</if>
+            <if test="remark != null and remark != ''">remark,</if>
+            <if test="photos != null and photos != ''">photos,</if>
+            deleted,
+            <if test="creator != null and creator != ''">creator,</if>
+            creator_time,
+            <if test="modifier != null and modifier != ''">modifier,</if>
+            modifier_time,
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="planId != null">#{planId},</if>
             <if test="userId != null">#{userId},</if>
+            <if test="deviceId != null">#{deviceId},</if>
             <if test="zoneId != null">#{zoneId},</if>
             <if test="status != null">#{status},</if>
-            <if test="remark != null">#{remark},</if>
-            <if test="creator != null">#{creator},</if>
-            <if test="creatorTime != null">#{creatorTime},</if>
-            <if test="modifier != null">#{modifier},</if>
-            <if test="modifierTime != null">#{modifierTime},</if>
+            <if test="remark != null and remark != ''">#{remark},</if>
+            <if test="photos != null and photos != ''">#{photos},</if>
+            0,
+            <if test="creator != null and creator != ''">#{creator},</if>
+            now(),
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
+            now(),
         </trim>
     </insert>
 
@@ -72,25 +175,30 @@
         <trim prefix="SET" suffixOverrides=",">
             <if test="planId != null">plan_id = #{planId},</if>
             <if test="userId != null">user_id = #{userId},</if>
+            <if test="deviceId != null">device_id = #{deviceId},</if>
             <if test="zoneId != null">zone_id = #{zoneId},</if>
             <if test="status != null">status = #{status},</if>
-            <if test="remark != null">remark = #{remark},</if>
-            <if test="creator != null">creator = #{creator},</if>
+            <if test="remark != null and remark != ''">remark = #{remark},</if>
+            <if test="photos != null and photos != ''">photos = #{photos},</if>
+            <if test="deleted != null">deleted = #{deleted},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
             <if test="creatorTime != null">creator_time = #{creatorTime},</if>
-            <if test="modifier != null">modifier = #{modifier},</if>
-            <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
+            modifier_time = now(),
         </trim>
         where id = #{id}
     </update>
 
-    <delete id="deleteDPlanUserById" parameterType="Long">
-        delete from d_plan_user where id = #{id}
-    </delete>
+    <!-- 修改：改为逻辑删除 -->
+    <update id="deleteDPlanUserById" parameterType="Long">
+        update d_plan_user set deleted = 1 where id = #{id}
+    </update>
 
-    <delete id="deleteDPlanUserByIds" parameterType="String">
-        delete from d_plan_user where id in
+    <!-- 修改：改为逻辑删除 -->
+    <update id="deleteDPlanUserByIds" parameterType="String">
+        update d_plan_user set deleted = 1 where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>
-    </delete>
+    </update>
 </mapper>

@@ -17,6 +17,15 @@ export function getPlanUser(id) {
   })
 }
 
+// 新增计划用户关联
+export function addPlanUser(data) {
+  return request({
+    url: '/system/planUser',
+    method: 'post',
+    data: data
+  })
+}
+
 // 修改计划用户关联
 export function updatePlanUser(data) {
   return request({
