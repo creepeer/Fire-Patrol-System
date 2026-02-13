@@ -126,7 +126,11 @@ function handleLogin() {
           }
           return acc
         }, {})
-        router.push({ path: redirect.value || "/", query: otherQueryParams })
+        if (redirect.value) {
+          router.push(redirect.value)
+        } else {
+          router.push({ path: "/", query: otherQueryParams })
+        }
       }).catch(() => {
         loading.value = false
         // 重新获取验证码

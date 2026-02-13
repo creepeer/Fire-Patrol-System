@@ -184,8 +184,9 @@ public class CDeviceServiceImpl implements ICDeviceService
         // 1. 二维码内容
         try {
             // 1. 二维码内容
-            String qrMessage = "http://121.43.195.181:9091/EQM/scan?deviceId="+id.toString();
+//            String qrMessage = "http://121.43.195.181:9091/EQM/scan?deviceId="+id.toString();
 //            String qrMessage = "http://localhost/EQM/scan?deviceId="+id.toString();
+            String qrMessage = "https://www.zjhzqsh.com/EQM/scan?deviceId="+id.toString();
             // 2. 二维码参数
             int CODE_WIDTH = 300;
             int CODE_HEIGHT = 300;

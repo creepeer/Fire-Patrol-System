@@ -43,6 +43,23 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/scan',
+    component: () => import('@/views/system/scan/index'),
+    hidden: true
+  },
+  {
+    path: '/EQM/scan',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/system/plan/user/index'),
+        meta: { title: '设备扫描', activeMenu: '/system/plan/user' }
+      }
+    ]
+  },
+  {
     path: '/register',
     component: () => import('@/views/register'),
     hidden: true

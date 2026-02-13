@@ -42,3 +42,10 @@ export function listPlanUserByZoneId(zoneId) {
     method: 'get'
   })
 }
+// 删除计划用户关联
+export function delPlanUser(id) {
+  return request({
+    url: '/system/planUser/' + id,
+    method: 'delete'
+  })
+}

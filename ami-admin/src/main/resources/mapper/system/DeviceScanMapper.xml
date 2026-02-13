@@ -44,6 +44,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectDeviceScanVo"/>
         where id = #{id}
     </select>
+    <select id="selectDeviceScanByDeviceIdAndPlanId" resultMap="DeviceScanResult">
+        <include refid="selectDeviceScanVo"/>
+        where device_id = #{deviceId}
+        and plan_id = #{planId}
+        and deleted = '0'
+        limit 1
+    </select>
 
     <insert id="insertDeviceScan" parameterType="DeviceScan" useGeneratedKeys="true" keyProperty="id">
         insert into d_device_scan
@@ -103,4 +110,5 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{id}
         </foreach>
     </delete>
+
 </mapper>

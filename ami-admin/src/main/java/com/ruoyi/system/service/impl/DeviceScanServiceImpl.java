@@ -1,6 +1,9 @@
 package com.ruoyi.system.service.impl;
 
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.system.mapper.DeviceScanMapper;
@@ -14,6 +17,7 @@ import com.ruoyi.system.service.IDeviceScanService;
  * @date 2026-01-30
  */
 @Service
+@Slf4j
 public class DeviceScanServiceImpl implements IDeviceScanService 
 {
     @Autowired
@@ -64,6 +68,13 @@ public class DeviceScanServiceImpl implements IDeviceScanService
     @Override
     public int updateDeviceScan(DeviceScan deviceScan)
     {
+        if(deviceScan.getId()==null||deviceScan.getId()==0){
+            DeviceScan cdeviceScan=deviceScanMapper.selectDeviceScanByDeviceIdAndPlanId(deviceScan.getDeviceId(),deviceScan.getPlanId());
+            BeanUtils.copyProperties(deviceScan,cdeviceScan);
+            log.info("Cdevice{}",cdeviceScan);
+            return 1;
+        }
+
         return deviceScanMapper.updateDeviceScan(deviceScan);
     }
 

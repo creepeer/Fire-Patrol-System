@@ -63,4 +63,6 @@ public interface DeviceScanMapper
      * @return 结果
      */
     public int deleteDeviceScanByIds(Long[] ids);
+
+    DeviceScan selectDeviceScanByDeviceIdAndPlanId(Long deviceId, Long planId);
 }
