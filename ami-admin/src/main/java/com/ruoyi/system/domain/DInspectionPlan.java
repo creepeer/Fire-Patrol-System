@@ -49,10 +49,19 @@ public class DInspectionPlan extends BaseEntity
     @JsonFormat(pattern = "yyyy-MM-dd")
     @Excel(name = "结束时间", width = 30, dateFormat = "yyyy-MM-dd")
     private Date endTime;
+    @Excel(name = "设备总数")
+    private Long totalNum;
 
+    /** 通过设备数 */
+    @Excel(name = "通过设备数")
+    private Long goodNum;
+
+    /** 不通过设备数 */
+    @Excel(name = "不通过设备数")
+    private Long badNum;
     /** 账号状态（0正常 1停用） */
-    @Excel(name = "账号状态", readConverterExp = "0=正常,1=停用")
-    private String status;
+    @Excel(name = "检查状态", readConverterExp = "0=未检查,1=通过,2=不通过")
+    private Integer status;
 
     /** 创建者 */
     @Excel(name = "创建者")
@@ -72,145 +81,147 @@ public class DInspectionPlan extends BaseEntity
     @Excel(name = "修改时间", width = 30, dateFormat = "yyyy-MM-dd")
     private Date modifierTime;
 
-    public void setId(Long id)
-    {
+    // Getters and Setters
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public Long getId()
-    {
+    public Long getId() {
         return id;
     }
 
-    public void setProjectId(Long projectId)
-    {
+    public void setProjectId(Long projectId) {
         this.projectId = projectId;
     }
 
-    public Long getProjectId()
-    {
+    public Long getProjectId() {
         return projectId;
     }
 
-    public void setDeptId(Long deptId)
-    {
+    public void setDeptId(Long deptId) {
         this.deptId = deptId;
     }
 
-    public Long getDeptId()
-    {
+    public Long getDeptId() {
         return deptId;
     }
 
-    public void setName(String name)
-    {
+    public void setName(String name) {
         this.name = name;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public void setCycle(String cycle)
-    {
+    public void setCycle(String cycle) {
         this.cycle = cycle;
     }
 
-    public String getCycle()
-    {
+    public String getCycle() {
         return cycle;
     }
 
-    public void setInspectorId(Long inspectorId)
-    {
+    public void setInspectorId(Long inspectorId) {
         this.inspectorId = inspectorId;
     }
 
-    public Long getInspectorId()
-    {
+    public Long getInspectorId() {
         return inspectorId;
     }
 
-    public void setStartTime(Date startTime)
-    {
+    public void setTotalNum(Long totalNum) {
+        this.totalNum = totalNum;
+    }
+
+    public Long getTotalNum() {
+        return totalNum;
+    }
+
+    public void setGoodNum(Long goodNum) {
+        this.goodNum = goodNum;
+    }
+
+    public Long getGoodNum() {
+        return goodNum;
+    }
+
+    public void setBadNum(Long badNum) {
+        this.badNum = badNum;
+    }
+
+    public Long getBadNum() {
+        return badNum;
+    }
+
+    public void setStartTime(Date startTime) {
         this.startTime = startTime;
     }
 
-    public Date getStartTime()
-    {
+    public Date getStartTime() {
         return startTime;
     }
 
-    public void setEndTime(Date endTime)
-    {
+    public void setEndTime(Date endTime) {
         this.endTime = endTime;
     }
 
-    public Date getEndTime()
-    {
+    public Date getEndTime() {
         return endTime;
     }
 
-    public void setStatus(String status)
-    {
+    public void setStatus(Integer status) {
         this.status = status;
     }
 
-    public String getStatus()
-    {
+    public Integer getStatus() {
         return status;
     }
 
-    public void setCreator(String creator)
-    {
+    public void setCreator(String creator) {
         this.creator = creator;
     }
 
-    public String getCreator()
-    {
+    public String getCreator() {
         return creator;
     }
 
-    public void setCreatorTime(Date creatorTime)
-    {
+    public void setCreatorTime(Date creatorTime) {
         this.creatorTime = creatorTime;
     }
 
-    public Date getCreatorTime()
-    {
+    public Date getCreatorTime() {
         return creatorTime;
     }
 
-    public void setModifier(String modifier)
-    {
+    public void setModifier(String modifier) {
         this.modifier = modifier;
     }
 
-    public String getModifier()
-    {
+    public String getModifier() {
         return modifier;
     }
 
-    public void setModifierTime(Date modifierTime)
-    {
+    public void setModifierTime(Date modifierTime) {
         this.modifierTime = modifierTime;
     }
 
-    public Date getModifierTime()
-    {
+    public Date getModifierTime() {
         return modifierTime;
     }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
                 .append("id", getId())
                 .append("projectId", getProjectId())
                 .append("deptId", getDeptId())
                 .append("name", getName())
                 .append("cycle", getCycle())
                 .append("inspectorId", getInspectorId())
+                .append("totalNum", getTotalNum())
+                .append("goodNum", getGoodNum())
+                .append("badNum", getBadNum())
                 .append("startTime", getStartTime())
                 .append("endTime", getEndTime())
                 .append("status", getStatus())

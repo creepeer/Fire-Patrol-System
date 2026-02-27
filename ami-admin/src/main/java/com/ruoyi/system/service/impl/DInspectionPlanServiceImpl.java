@@ -89,7 +89,8 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
         dInspectionPlan.setStartTime(dto.getSchedule().getStartTime());
         dInspectionPlan.setEndTime(dto.getSchedule().getEndTime());
         dInspectionPlan.setCycle(dto.getSchedule().getCycle());
-        dInspectionPlan.setStatus(dto.getStatus());
+        dInspectionPlan.setStatus(0);
+        Long num=0L;
         dInspectionPlanMapper.insertDInspectionPlan(dInspectionPlan);
         //计划区域关联表
         for (InspectionPlanDTO.PersonnelInfo personnel : dto.getPersonnel()) {
@@ -98,6 +99,7 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
                 List<CDevice> cDevices=cDeviceMapper.selectCDevicePlanByZoneId(zoneId);
                 log.info("cDevices:{}",cDevices.size());
                 for(CDevice device:cDevices){
+                    num++;
                     DPlanUser planUser= new DPlanUser();
                     planUser.setDeviceId(device.getId());
                     planUser.setZoneId(zoneId);
@@ -109,6 +111,10 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
                 }
             }
         }
+        dInspectionPlan.setTotalNum(num);
+        dInspectionPlan.setGoodNum(0L);
+        dInspectionPlan.setBadNum(0L);
+        dInspectionPlanMapper.updateDInspectionPlan(dInspectionPlan);
         //计划知识库关联表
         for(InspectionPlanDTO.DocumentInfo documentInfo:dto.getDocuments()){
             DPlanContentlib dPlanContentlib=new DPlanContentlib();
@@ -173,12 +179,16 @@ public class DInspectionPlanServiceImpl implements IDInspectionPlanService
     @Override
     public List<InspectionPlanDTO> selectPlanList(DInspectionPlan query) {
         List<DInspectionPlan> planList = dInspectionPlanMapper.selectDInspectionPlanList(query);
+
         List<InspectionPlanDTO> result = new ArrayList<>();
         for (DInspectionPlan plan : planList) {
             InspectionPlanDTO dto = new InspectionPlanDTO();
             dto.setId(plan.getId());
             dto.setName(plan.getName());
             dto.setStatus(plan.getStatus());
+            dto.setTotalNum(plan.getTotalNum());
+            dto.setGoodNum(plan.getGoodNum());
+            dto.setBadNum(plan.getBadNum());
             InspectionPlanDTO.ScheduleInfo schedule = new InspectionPlanDTO.ScheduleInfo();
             schedule.setStartTime(plan.getStartTime());
             schedule.setEndTime(plan.getEndTime());

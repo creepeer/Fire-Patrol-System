@@ -13,6 +13,12 @@ import com.ruoyi.system.domain.GProject;
 import com.ruoyi.system.service.IGBuildingService;
 import com.ruoyi.system.service.IGProjectService;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +44,7 @@ import com.ruoyi.common.utils.poi.ExcelUtil;
  * @date 2025-10-02
  */
 @RestController
+@Slf4j
 @RequestMapping("/system/zone")
 public class GZoneController extends BaseController
 {
@@ -47,6 +54,8 @@ public class GZoneController extends BaseController
     private IGProjectService gProjectService;
     @Autowired
     private IGBuildingService gBuildingService;
+    @Autowired
+    private RedisTemplate redisTemplate;
     /**
      * 查询区域管理列表
      */
@@ -75,6 +84,7 @@ public class GZoneController extends BaseController
      * 获取区域管理详细信息
      */
     @PreAuthorize("@ss.hasPermi('system:zone:query')")
+    @Cacheable(cacheNames = "Gzone",key = "#id")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id)
     {
@@ -96,6 +106,7 @@ public class GZoneController extends BaseController
      * 修改区域管理
      */
     @PreAuthorize("@ss.hasPermi('system:zone:edit')")
+    @CacheEvict(value = "Gzone",key = "#gZone.id")
     @Log(title = "区域管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody GZone gZone)
@@ -107,6 +118,7 @@ public class GZoneController extends BaseController
      * 删除区域管理
      */
     @PreAuthorize("@ss.hasPermi('system:zone:remove')")
+    @CacheEvict(value = "Gzone",key = "#gZone.id")
     @Log(title = "区域管理", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids)

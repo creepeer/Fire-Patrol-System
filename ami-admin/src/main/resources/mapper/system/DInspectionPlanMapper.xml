@@ -5,40 +5,49 @@
 <mapper namespace="com.ruoyi.system.mapper.DInspectionPlanMapper">
 
     <resultMap type="DInspectionPlan" id="DInspectionPlanResult">
-        <result property="id"    column="id"    />
-        <result property="projectId"    column="project_id"    />
-        <result property="deptId"    column="dept_id"    />
-        <result property="name"    column="name"    />
-        <result property="cycle"    column="cycle"    />
-        <result property="inspectorId"    column="inspector_id"    />
-        <result property="startTime"    column="start_time"    />
-        <result property="endTime"    column="end_time"    />
-        <result property="status"    column="status"    />
-        <result property="creator"    column="creator"    />
-        <result property="creatorTime"    column="creator_time"    />
-        <result property="modifier"    column="modifier"    />
-        <result property="modifierTime"    column="modifier_time"    />
+        <result property="id"           column="id" />
+        <result property="projectId"    column="project_id" />
+        <result property="deptId"       column="dept_id" />
+        <result property="name"         column="name" />
+        <result property="cycle"        column="cycle" />
+        <result property="inspectorId"  column="inspector_id" />
+        <result property="totalNum"     column="total_num" />
+        <result property="goodNum"      column="good_num" />
+        <result property="badNum"       column="bad_num" />
+        <result property="startTime"    column="start_time" />
+        <result property="endTime"      column="end_time" />
+        <result property="status"       column="status" />
+        <result property="creator"      column="creator" />
+        <result property="creatorTime"  column="creator_time" />
+        <result property="modifier"     column="modifier" />
+        <result property="modifierTime" column="modifier_time" />
     </resultMap>
 
     <sql id="selectDInspectionPlanVo">
-        select id, project_id, dept_id, name, cycle, inspector_id, start_time, end_time, status, creator, creator_time, modifier, modifier_time from d_inspection_plan
+        select id, project_id, dept_id, name, cycle, inspector_id,
+               total_num, good_num, bad_num, start_time, end_time,
+               status, creator, creator_time, modifier, modifier_time
+        from d_inspection_plan
     </sql>
 
     <select id="selectDInspectionPlanList" parameterType="DInspectionPlan" resultMap="DInspectionPlanResult">
         <include refid="selectDInspectionPlanVo"/>
         <where>
-            <if test="projectId != null "> and project_id = #{projectId}</if>
-            <if test="deptId != null "> and dept_id = #{deptId}</if>
-            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
-            <if test="cycle != null  and cycle != ''"> and cycle = #{cycle}</if>
-            <if test="inspectorId != null "> and inspector_id = #{inspectorId}</if>
-            <if test="startTime != null "> and start_time = #{startTime}</if>
-            <if test="endTime != null "> and end_time = #{endTime}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
-            <if test="creator != null  and creator != ''"> and creator = #{creator}</if>
-            <if test="creatorTime != null "> and creator_time = #{creatorTime}</if>
-            <if test="modifier != null  and modifier != ''"> and modifier = #{modifier}</if>
-            <if test="modifierTime != null "> and modifier_time = #{modifierTime}</if>
+            <if test="projectId != null"> and project_id = #{projectId}</if>
+            <if test="deptId != null"> and dept_id = #{deptId}</if>
+            <if test="name != null and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="cycle != null and cycle != ''"> and cycle = #{cycle}</if>
+            <if test="inspectorId != null"> and inspector_id = #{inspectorId}</if>
+            <if test="totalNum != null"> and total_num = #{totalNum}</if>
+            <if test="goodNum != null"> and good_num = #{goodNum}</if>
+            <if test="badNum != null"> and bad_num = #{badNum}</if>
+            <if test="startTime != null"> and start_time = #{startTime}</if>
+            <if test="endTime != null"> and end_time = #{endTime}</if>
+            <if test="status != null"> and status = #{status}</if>
+            <if test="creator != null and creator != ''"> and creator = #{creator}</if>
+            <if test="creatorTime != null"> and creator_time = #{creatorTime}</if>
+            <if test="modifier != null and modifier != ''"> and modifier = #{modifier}</if>
+            <if test="modifierTime != null"> and modifier_time = #{modifierTime}</if>
         </where>
     </select>
 
@@ -55,12 +64,15 @@
             <if test="name != null and name != ''">name,</if>
             <if test="cycle != null and cycle != ''">cycle,</if>
             <if test="inspectorId != null">inspector_id,</if>
+            <if test="totalNum != null">total_num,</if>
+            <if test="goodNum != null">good_num,</if>
+            <if test="badNum != null">bad_num,</if>
             <if test="startTime != null">start_time,</if>
             <if test="endTime != null">end_time,</if>
-            <if test="status != null and status != ''">status,</if>
-            <if test="creator != null">creator,</if>
+            <if test="status != null">status,</if>
+            <if test="creator != null and creator != ''">creator,</if>
             <if test="creatorTime != null">creator_time,</if>
-            <if test="modifier != null">modifier,</if>
+            <if test="modifier != null and modifier != ''">modifier,</if>
             <if test="modifierTime != null">modifier_time,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -69,12 +81,15 @@
             <if test="name != null and name != ''">#{name},</if>
             <if test="cycle != null and cycle != ''">#{cycle},</if>
             <if test="inspectorId != null">#{inspectorId},</if>
+            <if test="totalNum != null">#{totalNum},</if>
+            <if test="goodNum != null">#{goodNum},</if>
+            <if test="badNum != null">#{badNum},</if>
             <if test="startTime != null">#{startTime},</if>
             <if test="endTime != null">#{endTime},</if>
-            <if test="status != null and status != ''">#{status},</if>
-            <if test="creator != null">#{creator},</if>
+            <if test="status != null">#{status},</if>
+            <if test="creator != null and creator != ''">#{creator},</if>
             <if test="creatorTime != null">#{creatorTime},</if>
-            <if test="modifier != null">#{modifier},</if>
+            <if test="modifier != null and modifier != ''">#{modifier},</if>
             <if test="modifierTime != null">#{modifierTime},</if>
         </trim>
     </insert>
@@ -87,12 +102,15 @@
             <if test="name != null and name != ''">name = #{name},</if>
             <if test="cycle != null and cycle != ''">cycle = #{cycle},</if>
             <if test="inspectorId != null">inspector_id = #{inspectorId},</if>
+            <if test="totalNum != null">total_num = #{totalNum},</if>
+            <if test="goodNum != null">good_num = #{goodNum},</if>
+            <if test="badNum != null">bad_num = #{badNum},</if>
             <if test="startTime != null">start_time = #{startTime},</if>
             <if test="endTime != null">end_time = #{endTime},</if>
-            <if test="status != null and status != ''">status = #{status},</if>
-            <if test="creator != null">creator = #{creator},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="creator != null and creator != ''">creator = #{creator},</if>
             <if test="creatorTime != null">creator_time = #{creatorTime},</if>
-            <if test="modifier != null">modifier = #{modifier},</if>
+            <if test="modifier != null and modifier != ''">modifier = #{modifier},</if>
             <if test="modifierTime != null">modifier_time = #{modifierTime},</if>
         </trim>
         where id = #{id}
@@ -108,4 +126,5 @@
             #{id}
         </foreach>
     </delete>
+
 </mapper>

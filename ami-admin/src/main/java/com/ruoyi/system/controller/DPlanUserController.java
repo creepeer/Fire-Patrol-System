@@ -4,6 +4,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +37,8 @@ public class DPlanUserController extends BaseController
 {
     @Autowired
     private IDPlanUserService dPlanUserService;
-
+    @Autowired
+    private RedisTemplate redisTemplate;
     /**
      * 查询计划用户关联列表
      */
@@ -44,7 +46,21 @@ public class DPlanUserController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(DPlanUser dPlanUser)
     {
+
         startPage();
+        if(dPlanUser.getPlanId()!=null&&dPlanUser.getUserId()!=null){
+            String key="DeviceCheck_PlanId"+dPlanUser.getPlanId()+"_"+dPlanUser.getUserId();
+            //查询redis
+            List<DPlanUser>  dPlanUsers = (List<DPlanUser>) redisTemplate.opsForValue().get(key);
+            if(dPlanUsers!=null&& !dPlanUsers.isEmpty()){
+                log.info("查询缓存有");
+                return getDataTable(dPlanUsers);
+            }
+            List<DPlanUser> list = dPlanUserService.selectDPlanUserList(dPlanUser);
+            redisTemplate.opsForValue().set(key,list);
+            log.info("查询缓存无");
+            return getDataTable(list);
+        }
         List<DPlanUser> list = dPlanUserService.selectDPlanUserList(dPlanUser);
         return getDataTable(list);
     }
@@ -92,6 +108,12 @@ public class DPlanUserController extends BaseController
     public AjaxResult edit(@RequestBody DPlanUser dPlanUser)
     {
         log.info("dPlanUser{}",dPlanUser);
+        if(dPlanUser.getPlanId()!=null&&dPlanUser.getUserId()!=null){
+            String key="DeviceCheck_PlanId"+dPlanUser.getPlanId()+"_"+dPlanUser.getUserId();
+            //删除redis
+            log.info("删除缓存");
+            redisTemplate.delete(key);
+        }
         return toAjax(dPlanUserService.updateDPlanUser(dPlanUser));
     }
 

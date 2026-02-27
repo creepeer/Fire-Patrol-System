@@ -101,6 +101,9 @@
             <el-table-column label="项目名称" align="center" prop="project.zname" />
             <el-table-column label="公司名称" align="center" prop="company.name" />
             <el-table-column label="计划名称" align="center" prop="name" />
+            <el-table-column label="设备总数" align="center" prop="totalNum" />
+            <el-table-column label="通过数" align="center" prop="goodNum" />
+            <el-table-column label="不通过数" align="center" prop="badNum" />
             <el-table-column label="开始时间" align="center" prop="schedule.startTime" width="180">
               <template #default="scope">
                 <span>{{ parseTime(scope.row.schedule?.startTime, '{y}-{m}-{d}') }}</span>
@@ -113,9 +116,9 @@
             </el-table-column>
             <el-table-column label="状态" align="center" prop="status">
                <template #default="scope">
-                  <el-tag :type="scope.row.status === '0' ? 'success' : 'info'">
-                    {{ scope.row.status === '0' ? '正常' : '停用' }}
-                  </el-tag>
+                  <el-tag v-if="scope.row.status == 0" type="info">未检查完成</el-tag>
+                  <el-tag v-else-if="scope.row.status == 1" type="success">检测通过</el-tag>
+                  <el-tag v-else-if="scope.row.status == 2" type="danger">检测出现异常</el-tag>
                </template>
             </el-table-column>
             <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
@@ -156,10 +159,13 @@
            <el-descriptions-item label="巡检公司">{{ previewData.company?.name }}</el-descriptions-item>
            <el-descriptions-item label="开始时间">{{ formatDateTime(previewData.schedule?.startTime) }}</el-descriptions-item>
            <el-descriptions-item label="结束时间">{{ formatDateTime(previewData.schedule?.endTime) }}</el-descriptions-item>
+           <el-descriptions-item label="设备总数">{{ previewData.totalNum }}</el-descriptions-item>
+           <el-descriptions-item label="通过数">{{ previewData.goodNum }}</el-descriptions-item>
+           <el-descriptions-item label="不通过数">{{ previewData.badNum }}</el-descriptions-item>
            <el-descriptions-item label="计划状态">
-              <el-tag :type="previewData.status === '0' ? 'success' : 'info'">
-                {{ previewData.status === '0' ? '正常' : '停用' }}
-              </el-tag>
+              <el-tag v-if="previewData.status == 0" type="info">未检查完成</el-tag>
+              <el-tag v-else-if="previewData.status == 1" type="success">检测通过</el-tag>
+              <el-tag v-else-if="previewData.status == 2" type="danger">检测出现异常</el-tag>
            </el-descriptions-item>
         </el-descriptions>
         

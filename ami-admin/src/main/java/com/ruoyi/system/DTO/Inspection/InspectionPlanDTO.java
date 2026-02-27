@@ -24,6 +24,12 @@ public class InspectionPlanDTO {
      * 公司信息
      */
     private CompanyInfo company;
+    /**
+     * 设备数量信息
+     */
+    private Long totalNum;
+    private Long goodNum;
+    private Long badNum;
 
     /**
      * 巡检负责人
@@ -53,7 +59,7 @@ public class InspectionPlanDTO {
     /**
      * 状态：active/inactive
      */
-    private String status;
+    private Integer status;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private Date createdAt;

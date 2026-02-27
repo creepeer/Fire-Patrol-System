@@ -1,7 +1,16 @@
 package com.ruoyi.system.service.impl;
 
 import java.util.List;
+
+
+import com.ruoyi.system.domain.DInspectionPlan;
+import com.ruoyi.system.domain.DeviceScan;
+import com.ruoyi.system.mapper.DInspectionPlanMapper;
+import com.ruoyi.system.mapper.DeviceScanMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
 import com.ruoyi.system.mapper.DPlanUserMapper;
 import com.ruoyi.system.domain.DPlanUser;
@@ -14,10 +23,15 @@ import com.ruoyi.system.service.IDPlanUserService;
  * @date 2026-01-14
  */
 @Service
+@Slf4j
 public class DPlanUserServiceImpl implements IDPlanUserService 
 {
     @Autowired
     private DPlanUserMapper dPlanUserMapper;
+    @Autowired
+    private DeviceScanMapper deviceScanMapper;
+    @Autowired
+    private DInspectionPlanMapper dInspectionPlanMapper;
 
     /**
      * 查询计划用户关联
@@ -64,6 +78,23 @@ public class DPlanUserServiceImpl implements IDPlanUserService
     @Override
     public int updateDPlanUser(DPlanUser dPlanUser)
     {
+        DeviceScan deviceScan = new DeviceScan();
+        BeanUtils.copyProperties(dPlanUser,deviceScan);
+        log.info("deviceScan{}",deviceScan);
+        deviceScan.setScanCode(dPlanUser.getDeviceCode());
+        deviceScan.setScanResult(dPlanUser.getStatus());
+        deviceScan.setPhotos(dPlanUser.getPhotos());
+        deviceScanMapper.insertDeviceScan(deviceScan);
+        DInspectionPlan dInspectionPlan = dInspectionPlanMapper.selectDInspectionPlanById(dPlanUser.getPlanId());
+        if(dInspectionPlan.getBadNum()+dInspectionPlan.getGoodNum()+1==dInspectionPlan.getTotalNum())dInspectionPlan.setStatus(1);
+        if(dPlanUser.getStatus()==1){
+            dInspectionPlan.setGoodNum(dInspectionPlan.getGoodNum()+1);
+            dInspectionPlanMapper.updateDInspectionPlan(dInspectionPlan);
+        }
+        else {
+            dInspectionPlan.setGoodNum(dInspectionPlan.getBadNum()+1);
+            dInspectionPlanMapper.updateDInspectionPlan(dInspectionPlan);
+        }
         return dPlanUserMapper.updateDPlanUser(dPlanUser);
     }
 
