@@ -1,6 +1,8 @@
 package com.ruoyi.framework.web.service;
 
 import javax.annotation.Resource;
+
+import com.ruoyi.common.core.domain.entity.SysUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -28,12 +30,15 @@ import com.ruoyi.framework.security.context.AuthenticationContextHolder;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysUserService;
 
+import java.util.Set;
+
 /**
  * 登录校验方法
  * 
  * @author ruoyi
  */
 @Component
+
 public class SysLoginService
 {
     @Autowired
@@ -41,6 +46,8 @@ public class SysLoginService
 
     @Resource
     private AuthenticationManager authenticationManager;
+    @Autowired
+    private SysPermissionService permissionService;
 
     @Autowired
     private RedisCache redisCache;
@@ -72,6 +79,7 @@ public class SysLoginService
         {
             UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username, password);
             AuthenticationContextHolder.setContext(authenticationToken);
+
             // 该方法会去调用UserDetailsServiceImpl.loadUserByUsername
             authentication = authenticationManager.authenticate(authenticationToken);
         }
@@ -97,6 +105,27 @@ public class SysLoginService
         recordLoginInfo(loginUser.getUserId());
         // 生成token
         return tokenService.createToken(loginUser);
+    }
+    public String loginByPhone(SysUser user)
+    {
+        String username=user.getUserName();
+        Authentication authentication = null;
+        try {
+            Set<String> permissions = permissionService.getMenuPermission(user);
+            System.out.println("permissions:"+permissions);
+            LoginUser loginUser = new LoginUser(user,permissions);
+            AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_SUCCESS, "登录成功"));
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username,user.getPassword());
+            // 记录登录信息（IP、时间等）
+            recordLoginInfo(loginUser.getUserId());
+
+            // 生成并返回token
+            return tokenService.createToken(loginUser);
+
+        } catch (Exception e) {
+            AsyncManager.me().execute(AsyncFactory.recordLogininfor(username, Constants.LOGIN_FAIL, e.getMessage()));
+            throw new ServiceException(e.getMessage());
+        }
     }
 
     /**

@@ -2,7 +2,13 @@
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
       <h3 class="title">{{ title }}</h3>
-      <el-form-item prop="username">
+      <div class="login-mode-switch">
+        <el-radio-group v-model="loginMode" size="small">
+          <el-radio-button label="password">账号密码登录</el-radio-button>
+          <el-radio-button label="sms">手机验证码登录</el-radio-button>
+        </el-radio-group>
+      </div>
+      <el-form-item prop="username" v-if="loginMode === 'password'">
         <el-input
           v-model="loginForm.username"
           type="text"
@@ -13,7 +19,7 @@
           <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
-      <el-form-item prop="password">
+      <el-form-item prop="password" v-if="loginMode === 'password'">
         <el-input
           v-model="loginForm.password"
           type="password"
@@ -25,7 +31,43 @@
           <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
         </el-input>
       </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
+      <el-form-item prop="phoneNumber" v-if="loginMode === 'sms'">
+        <el-input
+          v-model="loginForm.phoneNumber"
+          type="text"
+          size="large"
+          auto-complete="off"
+          placeholder="手机号"
+        >
+          <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
+        </el-input>
+      </el-form-item>
+      <el-form-item prop="smsCode" v-if="loginMode === 'sms'">
+        <el-input
+          v-model="loginForm.smsCode"
+          size="large"
+          auto-complete="off"
+          placeholder="短信验证码"
+          style="width: 63%"
+          @keyup.enter="handleLogin"
+        >
+          <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
+        </el-input>
+        <div class="login-code">
+          <el-button
+            size="large"
+            type="primary"
+            style="width: 100%;"
+            :loading="smsSending"
+            :disabled="smsCountdown > 0"
+            @click="handleSendSms"
+          >
+            <span v-if="smsCountdown === 0">获取验证码</span>
+            <span v-else>{{ smsCountdown }}秒后重试</span>
+          </el-button>
+        </div>
+      </el-form-item>
+      <el-form-item prop="code" v-if="captchaEnabled && loginMode === 'password'">
         <el-input
           v-model="loginForm.code"
           size="large"
@@ -65,9 +107,10 @@
 </template>
 
 <script setup>
-import { getCodeImg } from "@/api/login"
+import { getCodeImg, sendSmsCode, checkSmsCode } from "@/api/login"
 import Cookies from "js-cookie"
 import { encrypt, decrypt } from "@/utils/jsencrypt"
+import { setToken } from "@/utils/auth"
 import useUserStore from '@/store/modules/user'
 
 const title = import.meta.env.VITE_APP_TITLE
@@ -81,22 +124,74 @@ const loginForm = ref({
   password: "admin123",
   rememberMe: false,
   code: "",
-  uuid: ""
+  uuid: "",
+  phoneNumber: "",
+  smsCode: ""
 })
 
+const loginMode = ref("password")
+
 const loginRules = {
-  username: [{ required: true, trigger: "blur", message: "请输入您的账号" }],
-  password: [{ required: true, trigger: "blur", message: "请输入您的密码" }],
-  code: [{ required: true, trigger: "change", message: "请输入验证码" }]
+  username: [{
+    validator: (rule, value, callback) => {
+      if (loginMode.value === "password" && !value) {
+        callback(new Error("请输入您的账号"))
+      } else {
+        callback()
+      }
+    },
+    trigger: "blur"
+  }],
+  password: [{
+    validator: (rule, value, callback) => {
+      if (loginMode.value === "password" && !value) {
+        callback(new Error("请输入您的密码"))
+      } else {
+        callback()
+      }
+    },
+    trigger: "blur"
+  }],
+  code: [{
+    validator: (rule, value, callback) => {
+      if (loginMode.value === "password" && !value) {
+        callback(new Error("请输入验证码"))
+      } else {
+        callback()
+      }
+    },
+    trigger: "change"
+  }],
+  phoneNumber: [{
+    validator: (rule, value, callback) => {
+      if (loginMode.value === "sms" && !value) {
+        callback(new Error("请输入手机号"))
+      } else {
+        callback()
+      }
+    },
+    trigger: "blur"
+  }],
+  smsCode: [{
+    validator: (rule, value, callback) => {
+      if (loginMode.value === "sms" && !value) {
+        callback(new Error("请输入短信验证码"))
+      } else {
+        callback()
+      }
+    },
+    trigger: "blur"
+  }]
 }
 
 const codeUrl = ref("")
 const loading = ref(false)
-// 验证码开关
 const captchaEnabled = ref(true)
-// 注册开关
 const register = ref(false)
 const redirect = ref(undefined)
+const smsSending = ref(false)
+const smsCountdown = ref(0)
+let smsTimer = null
 
 watch(route, (newRoute) => {
     redirect.value = newRoute.query && newRoute.query.redirect
@@ -106,39 +201,128 @@ function handleLogin() {
   proxy.$refs.loginRef.validate(valid => {
     if (valid) {
       loading.value = true
-      // 勾选了需要记住密码设置在 cookie 中设置记住用户名和密码
-      if (loginForm.value.rememberMe) {
-        Cookies.set("username", loginForm.value.username, { expires: 30 })
-        Cookies.set("password", encrypt(loginForm.value.password), { expires: 30 })
-        Cookies.set("rememberMe", loginForm.value.rememberMe, { expires: 30 })
-      } else {
-        // 否则移除
-        Cookies.remove("username")
-        Cookies.remove("password")
-        Cookies.remove("rememberMe")
-      }
-      // 调用action的登录方法
-      userStore.login(loginForm.value).then(() => {
-        const query = route.query
-        const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
-          if (cur !== "redirect") {
-            acc[cur] = query[cur]
-          }
-          return acc
-        }, {})
-        if (redirect.value) {
-          router.push(redirect.value)
+      const doLogin = () => {
+        if (loginForm.value.rememberMe) {
+          Cookies.set("username", loginForm.value.username, { expires: 30 })
+          Cookies.set("password", encrypt(loginForm.value.password), { expires: 30 })
+          Cookies.set("rememberMe", loginForm.value.rememberMe, { expires: 30 })
         } else {
-          router.push({ path: "/", query: otherQueryParams })
+          Cookies.remove("username")
+          Cookies.remove("password")
+          Cookies.remove("rememberMe")
         }
-      }).catch(() => {
-        loading.value = false
-        // 重新获取验证码
-        if (captchaEnabled.value) {
-          getCode()
-        }
-      })
+        userStore.login(loginForm.value).then(() => {
+          const query = route.query
+          const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
+            if (cur !== "redirect") {
+              acc[cur] = query[cur]
+            }
+            return acc
+          }, {})
+          if (redirect.value) {
+            router.push(redirect.value)
+          } else {
+            router.push({ path: "/", query: otherQueryParams })
+          }
+        }).catch(() => {
+          loading.value = false
+          if (captchaEnabled.value) {
+            getCode()
+          }
+        })
+      }
+
+      if (loginMode.value === "sms") {
+        checkSmsCode(loginForm.value.phoneNumber, loginForm.value.smsCode).then(res => {
+          let data = null
+          if (typeof res === "string") {
+            try {
+              data = JSON.parse(res)
+            } catch (e) {
+              data = null
+            }
+          } else {
+            data = res
+          }
+          if (!data) {
+            loading.value = false
+            proxy.$modal.msgError("短信验证码验证失败")
+            return
+          }
+          if (data.token) {
+            setToken(data.token)
+            userStore.token = data.token
+            const query = route.query
+            const otherQueryParams = Object.keys(query).reduce((acc, cur) => {
+              if (cur !== "redirect") {
+                acc[cur] = query[cur]
+              }
+              return acc
+            }, {})
+            if (redirect.value) {
+              router.push(redirect.value)
+            } else {
+              router.push({ path: "/", query: otherQueryParams })
+            }
+            loading.value = false
+            return
+          }
+          if (data.code === "OK" || data.code === 200) {
+            doLogin()
+            return
+          }
+          loading.value = false
+          const message = data.message || "短信验证码验证失败"
+          proxy.$modal.msgError(message)
+        }).catch(() => {
+          loading.value = false
+        })
+      } else {
+        doLogin()
+      }
     }
+  })
+}
+
+function handleSendSms() {
+  if (!loginForm.value.phoneNumber) {
+    proxy.$modal.msgError("请输入手机号")
+    return
+  }
+  if (smsCountdown.value > 0 || smsSending.value) {
+    return
+  }
+  smsSending.value = true
+  sendSmsCode(loginForm.value.phoneNumber).then(res => {
+    smsSending.value = false
+    let data = null
+    if (typeof res === "string") {
+      try {
+        data = JSON.parse(res)
+      } catch (e) {
+        data = null
+      }
+    } else {
+      data = res
+    }
+    if (data && data.code && data.code !== "OK") {
+      const message = data.message || "验证码发送失败"
+      proxy.$modal.msgError(message)
+      return
+    }
+    proxy.$modal.msgSuccess("验证码发送成功")
+    smsCountdown.value = 60
+    smsTimer = setInterval(() => {
+      if (smsCountdown.value > 0) {
+        smsCountdown.value--
+      }
+      if (smsCountdown.value === 0 && smsTimer) {
+        clearInterval(smsTimer)
+        smsTimer = null
+      }
+    }, 1000)
+  }).catch(() => {
+    smsSending.value = false
   })
 }
 
@@ -165,6 +349,12 @@ function getCookie() {
 
 getCode()
 getCookie()
+onUnmounted(() => {
+  if (smsTimer) {
+    clearInterval(smsTimer)
+    smsTimer = null
+  }
+})
 </script>
 
 <style lang='scss' scoped>
@@ -188,6 +378,10 @@ getCookie()
   width: 400px;
   padding: 25px 25px 5px 25px;
   z-index: 1;
+  .login-mode-switch {
+    text-align: center;
+    margin-bottom: 15px;
+  }
   .el-input {
     height: 40px;
     input {

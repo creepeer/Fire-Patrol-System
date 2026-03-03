@@ -12,7 +12,7 @@ public class OrderTask {
     @Autowired
     private DPlanUserMapper dPlanUserMapper;
 
-    @Scheduled(cron = "10 0 0 * * ?")
+    @Scheduled(cron = "1 * * * * ?")
     public void planRemind(){
         log.info("开始计划信息短信发布");
 

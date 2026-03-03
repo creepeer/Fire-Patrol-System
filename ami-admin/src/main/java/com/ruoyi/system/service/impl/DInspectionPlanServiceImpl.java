@@ -25,7 +25,7 @@ import com.ruoyi.system.service.IDInspectionPlanService;
  */
 @Service
 @Slf4j
-public class DInspectionPlanServiceImpl implements IDInspectionPlanService 
+public class    DInspectionPlanServiceImpl implements IDInspectionPlanService
 {
     @Autowired
     private DInspectionPlanMapper dInspectionPlanMapper;

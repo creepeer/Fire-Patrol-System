@@ -1,6 +1,5 @@
 import request from '@/utils/request'
 
-// 登录方法
 export function login(username, password, code, uuid) {
   const data = {
     username,
@@ -16,6 +15,28 @@ export function login(username, password, code, uuid) {
     },
     method: 'post',
     data: data
+  })
+}
+
+export function sendSmsCode(phoneNumber) {
+  return request({
+    url: '/sms/sendCode',
+    headers: {
+      isToken: false
+    },
+    method: 'post',
+    params: { phoneNumber }
+  })
+}
+
+export function checkSmsCode(phoneNumber, verifyCode) {
+  return request({
+    url: '/sms/checkCode',
+    headers: {
+      isToken: false
+    },
+    method: 'post',
+    params: { phoneNumber, verifyCode }
   })
 }
 

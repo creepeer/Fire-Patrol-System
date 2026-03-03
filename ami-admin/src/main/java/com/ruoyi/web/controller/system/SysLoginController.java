@@ -3,6 +3,8 @@ package com.ruoyi.web.controller.system;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +32,7 @@ import com.ruoyi.system.service.ISysMenuService;
  * @author ruoyi
  */
 @RestController
+@Slf4j
 public class SysLoginController
 {
     @Autowired
@@ -101,6 +104,11 @@ public class SysLoginController
     public AjaxResult getRouters()
     {
         Long userId = SecurityUtils.getUserId();
+        if(userId==null){
+            LoginUser loginUser = SecurityUtils.getLoginUser();
+            SysUser user = loginUser.getUser();
+            userId = user.getUserId();
+        }
         List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);
         return AjaxResult.success(menuService.buildMenus(menus));
     }

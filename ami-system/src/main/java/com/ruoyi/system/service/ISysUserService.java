@@ -42,6 +42,14 @@ public interface ISysUserService
      * @return 用户对象信息
      */
     public SysUser selectUserByUserName(String userName);
+    /**
+     * 通过电话查询用户
+     *
+     * @param phone 电话
+     * @return 用户对象信息
+     */
+    public SysUser selectUserByPhone(String phone);
+
 
     /**
      * 通过用户ID查询用户

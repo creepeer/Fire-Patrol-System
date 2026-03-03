@@ -108,6 +108,7 @@ public class SecurityUtils
      * @param encodedPassword 加密后字符
      * @return 结果
      */
+    //ToDo 验证码需要用加密后的密码内容进行登陆
     public static boolean matchesPassword(String rawPassword, String encodedPassword)
     {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
