@@ -9,6 +9,7 @@ import java.util.Set;
 
 import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysUser;
+import com.ruoyi.common.utils.MailUtils;
 import com.ruoyi.system.DTO.Inspection.InspectionPlanDTO;
 import com.ruoyi.system.domain.*;
 import com.ruoyi.system.mapper.*;
@@ -98,6 +99,13 @@ public class    DInspectionPlanServiceImpl implements IDInspectionPlanService
                 Long zoneId= assignedArea.getId();
                 List<CDevice> cDevices=cDeviceMapper.selectCDevicePlanByZoneId(zoneId);
                 log.info("cDevices:{}",cDevices.size());
+                Long userId= personnel.getId();
+                SysUser user=sysUserMapper.selectUserById(userId);
+                Set<String> set = new HashSet<>();
+                set.add(user.getEmail());
+                MailUtils.sendEmail(set, "测试发送邮件的接口！",
+                        "您好！这是我发送的一封测试发送接口的邮件，看完请删除记录。");
+                log.info("邮件成功发送{}",user.getEmail());
                 for(CDevice device:cDevices){
                     num++;
                     DPlanUser planUser= new DPlanUser();
@@ -108,6 +116,7 @@ public class    DInspectionPlanServiceImpl implements IDInspectionPlanService
                     planUser.setUserId(personnel.getId());
                     log.info("deviceScan{}",planUser);
                     dPlanUserMapper.insertDPlanUser(planUser);
+
                 }
             }
         }
