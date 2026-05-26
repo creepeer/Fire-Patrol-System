@@ -14,12 +14,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 @EnableCaching//开启缓存注解
 @EnableScheduling//开启定时任务
-public class RuoYiApplication
+public class AMIApplication
 {
     public static void main(String[] args)
     {
         // System.setProperty("spring.devtools.restart.enabled", "false");
-        SpringApplication.run(RuoYiApplication.class, args);
+        SpringApplication.run(AMIApplication.class, args);
         System.out.println("(♥◠‿◠)ﾉﾞ  若依启动成功   ლ(´ڡ`ლ)ﾞ  \n" +
                 " .-------.       ____     __        \n" +
                 " |  _ _   \\      \\   \\   /  /    \n" +

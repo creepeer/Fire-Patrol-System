@@ -1,6 +1,8 @@
 package com.ruoyi.common.utils;
 
 import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import javax.mail.Message;
 import javax.mail.Session;
@@ -17,7 +19,8 @@ import java.util.Properties;
  * @Description: 邮件工具类
  * @date 2023/7/22 14:15
  */
-@Log4j2
+@Slf4j
+@Component
 public class MailUtils {
 
     // 邮件协议

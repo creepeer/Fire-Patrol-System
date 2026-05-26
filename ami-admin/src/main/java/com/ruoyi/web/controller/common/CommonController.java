@@ -98,6 +98,7 @@ public class CommonController
             return AjaxResult.error(e.getMessage());
         }
     }
+
     @PostMapping("/delete")
     public AjaxResult deleteFile(@RequestParam String fileName) {
         try {

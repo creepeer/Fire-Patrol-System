@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.ruoyi.common.Rabbitmq.service.MailMQService;
 import com.ruoyi.common.core.domain.entity.SysDept;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.utils.MailUtils;
@@ -46,6 +47,10 @@ public class    DInspectionPlanServiceImpl implements IDInspectionPlanService
     private DeviceScanMapper deviceScanMapper;
     @Autowired
     private CDeviceMapper cDeviceMapper;
+
+
+    @Autowired
+    private MailMQService mailMQService;
 
 
     /**
@@ -95,17 +100,14 @@ public class    DInspectionPlanServiceImpl implements IDInspectionPlanService
         dInspectionPlanMapper.insertDInspectionPlan(dInspectionPlan);
         //计划区域关联表
         for (InspectionPlanDTO.PersonnelInfo personnel : dto.getPersonnel()) {
+
+            Long userId= personnel.getId();
             for (InspectionPlanDTO.PersonnelInfo.AssignedArea assignedArea : personnel.getAssignedAreas()) {
                 Long zoneId= assignedArea.getId();
+                Set<Long> setZone=new HashSet<>();
+                setZone.add(zoneId);
                 List<CDevice> cDevices=cDeviceMapper.selectCDevicePlanByZoneId(zoneId);
                 log.info("cDevices:{}",cDevices.size());
-                Long userId= personnel.getId();
-                SysUser user=sysUserMapper.selectUserById(userId);
-                Set<String> set = new HashSet<>();
-                set.add(user.getEmail());
-                MailUtils.sendEmail(set, "测试发送邮件的接口！",
-                        "您好！这是我发送的一封测试发送接口的邮件，看完请删除记录。");
-                log.info("邮件成功发送{}",user.getEmail());
                 for(CDevice device:cDevices){
                     num++;
                     DPlanUser planUser= new DPlanUser();
@@ -118,6 +120,11 @@ public class    DInspectionPlanServiceImpl implements IDInspectionPlanService
                     dPlanUserMapper.insertDPlanUser(planUser);
 
                 }
+            }
+            if(!personnel.getAssignedAreas().isEmpty()){
+                SysUser user=sysUserMapper.selectUserById(userId);
+                log.info("user名称{}",user.getUserName());
+                mailMQService.sendMailAsync(user.getEmail(),"AMI系统新计划","新的计划已发布请注意查收");
             }
         }
         dInspectionPlan.setTotalNum(num);
